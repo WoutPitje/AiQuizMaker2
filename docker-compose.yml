@@ -17,6 +17,7 @@ services:
       - MAX_PDF_SIZE=${MAX_PDF_SIZE:-104857600}
       - MAX_PAGES_PER_PDF=${MAX_PAGES_PER_PDF:-200}
       - DEFAULT_QUESTIONS_PER_PAGE=${DEFAULT_QUESTIONS_PER_PAGE:-2}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
     volumes:
       - api_uploads:/app/uploads
       - api_storage:/app/quiz-storage
