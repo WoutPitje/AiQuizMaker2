@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  # Backend API Service
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: aiquizmaker-api
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - MAX_PDF_SIZE=${MAX_PDF_SIZE:-104857600}
+      - MAX_PAGES_PER_PDF=${MAX_PAGES_PER_PDF:-200}
+      - DEFAULT_QUESTIONS_PER_PAGE=${DEFAULT_QUESTIONS_PER_PAGE:-2}
+    volumes:
+      - api_uploads:/app/uploads
+      - api_storage:/app/quiz-storage
+    networks:
+      - aiquizmaker-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/config"]
+      timeout: 5s
+      retries: 5
+
+  # Frontend Web Service  
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: aiquizmaker-web
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NUXT_HOST=0.0.0.0
+      - NUXT_PORT=3000
+      - NUXT_PUBLIC_API_URL=http://localhost:3001
+    depends_on:
+      - api
+    networks:
+      - aiquizmaker-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
+      timeout: 5s
+      retries: 5
+
+volumes:
+  api_uploads:
+    driver: local
+  api_storage:
+    driver: local
+
+networks:
+  aiquizmaker-network:
+    driver: bridge 
