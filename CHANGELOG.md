@@ -4,6 +4,60 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased] - 2024-12-19
 
+### 🔍 Added Access Tracking System
+- **Comprehensive User Analytics**: Implemented complete access tracking system for monitoring app usage
+  - **API Request Tracking**: Automatically tracks all API calls with response times and status codes via middleware
+  - **Page View Tracking**: Frontend plugin automatically tracks page views and navigation
+  - **User Session Tracking**: UUID-based session management for user journey analysis
+  - **Real-time Webhook Integration**: All tracking data sent to webhook endpoint for centralized analytics
+  - **IP Address Capture**: Proxy-aware IP extraction ready for geolocation integration
+  - **Development/Production Support**: Environment-aware tracking with development logging
+
+### 🛠️ Backend Access Tracking
+- **AccessLogService** (`api/src/access-log.service.ts`): Webhook delivery service for tracking data
+  - Formats log entries with app metadata (environment, domain, timestamp)
+  - Provides specialized methods for API requests and page views
+  - Handles webhook failures gracefully with retry logic
+- **AccessLogMiddleware** (`api/src/access-log.middleware.ts`): Automatic API request tracking
+  - Measures response times and captures status codes
+  - Extracts client IP from various headers (X-Forwarded-For, X-Real-IP, CF-Connecting-IP)
+  - Filters out static files and health checks
+  - Session ID extraction from cookies and auth headers
+- **Track Page View Endpoint** (`POST /track-page-view`): Frontend tracking endpoint
+  - Receives page view data from frontend
+  - Processes and forwards to webhook with IP resolution
+
+### 🎨 Frontend Access Tracking
+- **useTracking Composable** (`web/composables/useTracking.ts`): Tracking utilities for components
+  - Session ID management with localStorage persistence
+  - Page view and custom event tracking functions
+  - Development mode logging and production webhook delivery
+  - TypeScript interfaces for tracking data
+- **Tracking Plugin** (`web/plugins/tracking.client.ts`): Automatic page view tracking
+  - Tracks initial page loads and route changes
+  - Provides global access to tracking functions (`$trackEvent`, `$trackPageView`)
+  - Client-side only execution for proper browser context
+
+### 📊 Analytics Integration
+- **Webhook Endpoint**: `https://n8n.pitdigital.nl/webhook-test/fa591fe7-532f-4bc3-bce7-c0c36ad1964b`
+- **Data Structure**: Comprehensive tracking payload with timestamp, IP, user agent, session ID, response metrics
+- **Event Types**: API requests, page views, and custom events with structured identifiers
+- **Session Management**: UUID v4 session IDs for user journey tracking across visits
+
+### 📚 Documentation
+- **Access Tracking Guide**: Created comprehensive `Documentation/access-tracking.md`
+  - Complete system architecture documentation
+  - Configuration instructions for development and production
+  - Data structure specifications and webhook integration guide
+  - Manual tracking examples and troubleshooting procedures
+  - Security and privacy considerations for GDPR compliance
+  - Integration patterns for various analytics platforms
+
+### 🔧 Configuration Updates
+- **Package Dependencies**: Added `uuid` and `@types/uuid` for session ID generation
+- **Environment Variables**: Ready for `ENABLE_TRACKING` development flag
+- **Nuxt Configuration**: Added `apiBase` runtime config for tracking API calls
+
 ### 🎨 UI/UX Improvements
 - **Copy Button Feedback**: Enhanced copy button feedback in quiz sharing interfaces
   - Added "Copied!" feedback state in `StreamingQuizDisplay.vue` copy button

@@ -11,7 +11,8 @@ export default defineNuxtConfig({
   
   runtimeConfig: {
     public: {
-      apiUrl: process.env.API_URL || 'http://localhost:8000/api' // Production API URL with nginx proxy
+      apiUrl: process.env.API_URL || 'http://localhost:8000/api', // Production API URL with nginx proxy
+      apiBase: process.env.API_URL || 'http://localhost:8000/api' // For tracking API calls
     }
   }
 })

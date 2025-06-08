@@ -1,4 +1,4 @@
-import { Controller, Get, Post, UploadedFile, UseInterceptors, BadRequestException, Body, Param, Res, Sse } from '@nestjs/common';
+import { Controller, Get, Post, UploadedFile, UseInterceptors, BadRequestException, Body, Param, Res, Sse, Req } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
@@ -6,8 +6,9 @@ import { ConfigService } from '@nestjs/config';
 import { AppService } from './app.service';
 import { QuizmakerService } from './quizmaker.service';
 import { AiService } from './ai.service';
+import { AccessLogService } from './access-log.service';
 import { PdfToQuizOptions } from './models/quiz.model';
-import { Response } from 'express';
+import { Response, Request } from 'express';
 import { Observable } from 'rxjs';
 
 @Controller()
@@ -16,6 +17,7 @@ export class AppController {
     private readonly appService: AppService,
     private readonly quizmakerService: QuizmakerService,
     private readonly aiService: AiService,
+    private readonly accessLogService: AccessLogService,
     private readonly configService: ConfigService
   ) {}
 
@@ -270,5 +272,52 @@ export class AppController {
     });
     
     return response;
+  }
+
+  @Post('track-page-view')
+  async trackPageView(@Req() req: Request, @Body() body: {
+    url: string;
+    referer?: string;
+    sessionId?: string;
+    userId?: string;
+  }) {
+    try {
+      const ip = this.getClientIP(req);
+      
+      await this.accessLogService.logPageView({
+        ip,
+        userAgent: req.get('User-Agent') || 'Unknown',
+        url: body.url,
+        referer: body.referer || req.get('Referer'),
+        sessionId: body.sessionId,
+        userId: body.userId,
+      });
+
+      return {
+        success: true,
+        message: 'Page view tracked successfully'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Failed to track page view',
+        error: error.message
+      };
+    }
+  }
+
+  private getClientIP(req: Request): string {
+    // Check various headers for the real IP (in order of preference)
+    const forwarded = req.get('X-Forwarded-For');
+    if (forwarded) {
+      return forwarded.split(',')[0].trim();
+    }
+    
+    return req.get('X-Real-IP') || 
+           req.get('CF-Connecting-IP') || // Cloudflare
+           req.connection.remoteAddress ||
+           req.socket.remoteAddress ||
+           (req.connection as any)?.socket?.remoteAddress ||
+           'unknown';
   }
 }

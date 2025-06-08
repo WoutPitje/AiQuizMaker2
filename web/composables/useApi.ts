@@ -4,7 +4,7 @@ export const useApi = () => {
   const config = useRuntimeConfig()
   
   // Base API URL - production setup with nginx proxy
-  const baseURL = config.public.apiUrl || 'http://localhost:8000/api'
+  const baseURL = config.public.apiUrl || 'http://localhost:3001'
   
   console.log('🔧 API baseURL configured as:', baseURL)
   
