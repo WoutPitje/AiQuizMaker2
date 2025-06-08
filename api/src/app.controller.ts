@@ -106,7 +106,7 @@ export class AppController {
         message: 'Quiz generated successfully',
         quiz: result.quiz,
         magicLink: result.magicLink,
-        shareUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/quiz/${result.magicLink}`
+        shareUrl: `${process.env.WEB_URL || 'http://localhost:3000'}/quiz/${result.magicLink}`
       };
     } catch (error) {
       return {

@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Production Environment Configuration**: Complete environment setup for Docker deployment
+  - `.env.production` template optimized for Docker Compose with nginx reverse proxy
+  - Updated local `.env` file with production URLs (port 8000 and /api prefix)
+  - Recreated `env.example` with comprehensive documentation and examples
+  - Production deployment guide with monitoring and troubleshooting instructions
+  - Environment switching instructions for development vs production modes
+  - Backup strategies and maintenance procedures for production deployments
+
+- **Production Docker Setup with Reverse Proxy**: Created production-ready Docker configuration
+  - nginx reverse proxy routing all traffic through port 8000
+  - API requests routed to `/api/*` and forwarded to backend service
+  - Frontend requests served directly from web service
+  - Security headers and rate limiting implemented in nginx
+  - CORS handling at proxy level for API endpoints
+  - Health check endpoints for monitoring
+  - Single external port (8000) for simplified deployment and security
+
 - **AI-Powered Quiz Generation**: Replaced algorithm-based generation with ChatGPT integration
   - `AiService` using OpenAI GPT-3.5-turbo for intelligent question generation
   - Natural language processing for better question quality

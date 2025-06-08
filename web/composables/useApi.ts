@@ -3,8 +3,8 @@ import type { UploadResponse, QuizResponse, ConfigResponse, LanguagesResponse, Q
 export const useApi = () => {
   const config = useRuntimeConfig()
   
-  // Base API URL - will fallback to localhost in development
-  const baseURL = config.public.apiUrl || 'http://localhost:3001'
+  // Base API URL - production setup with nginx proxy
+  const baseURL = config.public.apiUrl || 'http://localhost:8000/api'
   
   console.log('🔧 API baseURL configured as:', baseURL)
   

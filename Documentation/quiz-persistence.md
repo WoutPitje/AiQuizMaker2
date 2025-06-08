@@ -306,14 +306,14 @@ chmod 755 quiz-storage/
 #### Sharing URL Issues
 **Symptoms**: Shared links don't work
 **Causes**:
-- Incorrect FRONTEND_URL environment variable
+- Incorrect WEB_URL environment variable
 - CORS issues
 - Network connectivity problems
 
 **Solutions**:
 ```bash
 # Set correct frontend URL
-export FRONTEND_URL=http://localhost:3000
+export WEB_URL=http://localhost:3000
 
 # Test API endpoint
 curl http://localhost:3001/quiz/magic/ABC123XYZ

@@ -1,6 +1,25 @@
 version: '3.8'
 
 services:
+  # Reverse Proxy (nginx)
+  proxy:
+    image: nginx:alpine
+    container_name: aiquizmaker-proxy
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - api
+      - web
+    networks:
+      - aiquizmaker-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80"]
+      timeout: 5s
+      retries: 5
+
   # Backend API Service
   api:
     build:
@@ -8,8 +27,6 @@ services:
       dockerfile: Dockerfile
     container_name: aiquizmaker-api
     restart: unless-stopped
-    ports:
-      - "3001:3001"
     environment:
       - NODE_ENV=production
       - PORT=3001
@@ -17,7 +34,7 @@ services:
       - MAX_PDF_SIZE=${MAX_PDF_SIZE:-104857600}
       - MAX_PAGES_PER_PDF=${MAX_PAGES_PER_PDF:-200}
       - DEFAULT_QUESTIONS_PER_PAGE=${DEFAULT_QUESTIONS_PER_PAGE:-2}
-      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
+      - WEB_URL=${WEB_URL:-http://localhost:8000}
     volumes:
       - api_uploads:/app/uploads
       - api_storage:/app/quiz-storage
@@ -35,13 +52,9 @@ services:
       dockerfile: Dockerfile
     container_name: aiquizmaker-web
     restart: unless-stopped
-    ports:
-      - "3000:3000"
     environment:
       - NODE_ENV=production
-      - NUXT_HOST=0.0.0.0
-      - NUXT_PORT=3000
-      - NUXT_PUBLIC_API_URL=${NUXT_PUBLIC_API_URL:-http://localhost:3001}
+      - API_URL=${API_URL:-http://localhost:8000/api}
     depends_on:
       - api
     networks:

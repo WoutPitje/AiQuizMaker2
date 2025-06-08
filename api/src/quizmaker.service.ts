@@ -534,7 +534,7 @@ export class QuizmakerService {
         data: {
           quiz,
           magicLink,
-          shareUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/quiz/${magicLink}`,
+          shareUrl: `${process.env.WEB_URL || 'http://localhost:3000'}/quiz/${magicLink}`,
           message: 'Quiz generation completed successfully!',
           stats: {
             totalQuestions: allQuestions.length,

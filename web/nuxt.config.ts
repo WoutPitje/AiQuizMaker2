@@ -11,7 +11,7 @@ export default defineNuxtConfig({
   
   runtimeConfig: {
     public: {
-      apiUrl: process.env.API_URL || 'http://localhost:3001' // Backend API on port 3001
+      apiUrl: process.env.API_URL || 'http://localhost:8000/api' // Production API URL with nginx proxy
     }
   }
 })
