@@ -264,17 +264,50 @@ export const useFileUploadStore = defineStore('fileUpload', () => {
   }
 
   const copyMagicLink = async () => {
-    if (currentShareUrl.value) {
-      try {
-        await navigator.clipboard.writeText(currentShareUrl.value)
-        console.log('📋 Share URL copied to clipboard')
-        return true
-      } catch (error) {
-        console.error('❌ Failed to copy to clipboard:', error)
-        return false
-      }
+    if (!currentShareUrl.value) {
+      return false
     }
-    return false
+
+    try {
+      // First, try the modern Clipboard API (requires HTTPS and user interaction)
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(currentShareUrl.value)
+        console.log('📋 Share URL copied to clipboard (Clipboard API)')
+        return true
+      }
+      
+      // Fallback to document.execCommand (deprecated but more widely supported)
+      const textArea = document.createElement('textarea')
+      textArea.value = currentShareUrl.value
+      textArea.style.position = 'fixed'
+      textArea.style.left = '-999999px'
+      textArea.style.top = '-999999px'
+      document.body.appendChild(textArea)
+      textArea.focus()
+      textArea.select()
+      
+      const successful = document.execCommand('copy')
+      document.body.removeChild(textArea)
+      
+      if (successful) {
+        console.log('📋 Share URL copied to clipboard (execCommand)')
+        return true
+      } else {
+        throw new Error('execCommand failed')
+      }
+      
+    } catch (error) {
+      console.error('❌ Failed to copy to clipboard:', error)
+      
+      // Final fallback: provide the URL for manual copying
+      if (window.prompt) {
+        window.prompt('Copy this URL manually:', currentShareUrl.value)
+        console.log('📋 Share URL provided for manual copy')
+        return true
+      }
+      
+      return false
+    }
   }
 
   // Language actions

@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+- **Clipboard API Production Issue**: Fixed share URL copying functionality for production environments
+  - Added fallback to `document.execCommand('copy')` when Clipboard API is unavailable
+  - Includes secure context check (`window.isSecureContext`) before using modern API
+  - Manual copy prompt as final fallback when all clipboard methods fail
+  - Enhanced error handling and user feedback for copy operations
+  - Ensures share URL copying works in all deployment environments
+
 ### Added
 - **Production Environment Configuration**: Complete environment setup for Docker deployment
   - `.env.production` template optimized for Docker Compose with nginx reverse proxy
