@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased] - 2024-12-19
 
+### 🎨 UI/UX Improvements
+- **Copy Button Feedback**: Enhanced copy button feedback in quiz sharing interfaces
+  - Added "Copied!" feedback state in `StreamingQuizDisplay.vue` copy button
+  - Improved user experience with 2-second feedback duration and button disable state during copy
+  - Consistent copy feedback behavior across both `QuizDisplay.vue` and `StreamingQuizDisplay.vue`
+  - Enhanced error handling for clipboard operations
+
 ### 🔒 Added SSL/HTTPS Support
 - **Complete SSL Implementation**: Added comprehensive SSL/HTTPS support for production deployment
   - **Let's Encrypt Integration**: Automated SSL certificate generation using certbot container
