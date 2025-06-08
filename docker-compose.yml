@@ -50,6 +50,8 @@ services:
     build:
       context: ./web
       dockerfile: Dockerfile
+      args:
+        - API_URL=${API_URL:-http://localhost:8000/api}
     container_name: aiquizmaker-web
     restart: unless-stopped
     environment:
