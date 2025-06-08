@@ -2,7 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [Unreleased] - 2024-12-19
+
+### 🛠️ Fixed
+- **Nginx SSE Configuration**: Fixed Server-Sent Events (SSE) streaming issues in Docker Compose setup
+  - **Critical SSE Settings**: Added `proxy_buffering off` and `proxy_cache off` to prevent nginx from buffering SSE responses
+  - **HTTP/1.1 Configuration**: Added `proxy_http_version 1.1` and `proxy_set_header Connection ''` for proper persistent connections
+  - **Extended Timeouts**: Increased `proxy_read_timeout` and `proxy_send_timeout` to 3600s for long-running quiz generation streams
+  - **Dedicated SSE Endpoint**: Added specific nginx location block for `/api/generate-quiz-stream/` with optimized SSE configuration
+  - **Cache Prevention Headers**: Added `Cache-Control`, `Pragma`, and `Expires` headers to prevent caching of streaming responses
+  - **Rate Limiting Exemption**: Removed rate limiting for SSE endpoints to prevent stream interruptions
+  - **Enhanced CORS Headers**: Added `Cache-Control` to allowed CORS headers for proper SSE handling
+
+### 📚 Documentation
+- **New Documentation**: Created `Documentation/nginx-sse-configuration.md` with comprehensive SSE troubleshooting guide
+  - **Configuration Examples**: Complete nginx configuration blocks for SSE support
+  - **Testing Instructions**: curl commands and browser DevTools testing procedures
+  - **Common Issues**: Detailed troubleshooting for SSE connection problems
+  - **Performance Optimization**: Guidelines for worker connections and connection pooling
+  - **Security Considerations**: CORS and rate limiting guidance for production
 
 ### Fixed
 - **Clipboard API Production Issue**: Fixed share URL copying functionality for production environments
