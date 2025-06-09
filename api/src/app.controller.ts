@@ -88,36 +88,7 @@ export class AppController {
     };
   }
 
-  @Post('generate-quiz/:filename')
-  async generateQuiz(
-    @Param('filename') filename: string,
-    @Body() options?: PdfToQuizOptions
-  ) {
-    try {
-      const filePath = `./uploads/${filename}`;
-      
-      // Log the language selection
-      if (options?.language) {
-        console.log(`🌐 Generating quiz in language: ${options.language}`);
-      }
-      
-      const result = await this.quizmakerService.pdfToQuiz(filePath, options);
-      
-      return {
-        success: true,
-        message: 'Quiz generated successfully',
-        quiz: result.quiz,
-        magicLink: result.magicLink,
-        shareUrl: `${process.env.WEB_URL || 'http://localhost:3000'}/quiz/${result.magicLink}`
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: 'Failed to generate quiz',
-        error: error.message
-      };
-    }
-  }
+
 
   @Get('languages')
   getSupportedLanguages() {
@@ -272,6 +243,27 @@ export class AppController {
     });
     
     return response;
+  }
+
+  @Post('cleanup-files')
+  async cleanupFiles(@Body() options?: { olderThanHours?: number }) {
+    try {
+      const hours = options?.olderThanHours || 24;
+      const result = await this.quizmakerService.cleanupOldUploadedFiles(hours);
+      
+      return {
+        success: true,
+        message: `Cleanup completed: ${result.cleaned} files removed`,
+        cleaned: result.cleaned,
+        errors: result.errors
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Failed to cleanup files',
+        error: error.message
+      };
+    }
   }
 
   @Post('track-page-view')

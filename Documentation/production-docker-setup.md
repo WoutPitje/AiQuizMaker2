@@ -1,6 +1,6 @@
 # Production Docker Setup
 
-This document describes the production-ready Docker configuration for AI Quiz Maker using nginx as a reverse proxy.
+This document describes the production-ready Docker configuration for 🧠 QuizAi using nginx as a reverse proxy.
 
 ## Architecture Overview
 

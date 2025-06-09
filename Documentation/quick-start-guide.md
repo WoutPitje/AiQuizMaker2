@@ -1,4 +1,4 @@
-# Quick Start Guide - AiQuizMaker
+# Quick Start Guide - QuizAi
 
 ## What's New (Performance Update)
 🚀 **10-50x Faster Processing**: Image generation is now optional and disabled by default  
@@ -7,7 +7,7 @@
 🛡️ **Better Error Handling**: Resilient processing with automatic fallbacks  
 
 ## Overview
-AiQuizMaker is an AI-powered application that converts PDF documents into interactive quizzes using ChatGPT. The application consists of a NestJS backend for AI processing and a Nuxt.js frontend for the user interface.
+🧠 QuizAi is an AI-powered application that converts PDF documents into interactive quizzes using ChatGPT. The application consists of a NestJS backend for AI processing and a Nuxt.js frontend for the user interface.
 
 ## Prerequisites
 - **Node.js 18+** and **npm 8+**

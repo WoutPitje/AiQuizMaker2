@@ -134,34 +134,26 @@ interface Quiz {
 
 ## API Endpoints
 
-### Generate Quiz from PDF
+### Generate Quiz from PDF (Streaming)
 ```http
-POST /api/quiz/generate
-Content-Type: multipart/form-data
+POST /generate-quiz-stream/:filename
+Content-Type: application/json
 
-file: [PDF file]
-questionsPerPage: 2 (optional)
-difficulty: "mixed" (optional: easy|medium|hard|mixed)
-includeExplanations: true (optional)
+{
+  "questionsPerPage": 2,
+  "difficulty": "mixed",
+  "includeExplanations": true,
+  "language": "en"
+}
 ```
 
-**Response:**
-```json
-{
-  "success": true,
-  "quiz": {
-    "id": "quiz_1749294685195_abc123def",
-    "title": "Quiz from Document Name",
-    "description": "AI-generated quiz from PDF content with 8 questions",
-    "questions": [...],
-    "metadata": {
-      "sourceFile": "./uploads/document.pdf",
-      "totalPages": 4,
-      "createdAt": "2024-01-15T10:30:00.000Z",
-      "estimatedDuration": 12
-    }
-  }
-}
+**Response (Server-Sent Events):**
+```
+data: {"type":"start","data":{"quizId":"quiz_123","message":"Starting quiz generation..."}}
+
+data: {"type":"question-generated","data":{"question":{...},"totalQuestions":1}}
+
+data: {"type":"completed","data":{"quiz":{...},"magicLink":"ABC123","shareUrl":"..."}}
 ```
 
 ## Configuration Options
@@ -251,18 +243,29 @@ LOG_LEVEL=info  # optional: debug, info, warn, error
 
 ## Usage Examples
 
-### Basic Usage
+### Streaming Quiz Generation (Primary Method)
 ```typescript
 const quizmakerService = new QuizmakerService(fileServerService, aiService);
 
-// Generate quiz with default options
-const quiz = await quizmakerService.pdfToQuiz('./uploads/document.pdf');
-
-// Generate quiz with custom options
-const customQuiz = await quizmakerService.pdfToQuiz('./uploads/document.pdf', {
+// Generate quiz with real-time streaming
+const observable = quizmakerService.pdfToQuizStream('./uploads/document.pdf', {
   questionsPerPage: 3,
   difficulty: 'hard',
-  includeExplanations: true
+  includeExplanations: true,
+  language: 'en'
+});
+
+observable.subscribe({
+  next: (event) => {
+    console.log('Quiz generation event:', event);
+    // Handle real-time updates (questions, progress, completion)
+  },
+  error: (error) => {
+    console.error('Generation failed:', error);
+  },
+  complete: () => {
+    console.log('Quiz generation completed!');
+  }
 });
 ```
 

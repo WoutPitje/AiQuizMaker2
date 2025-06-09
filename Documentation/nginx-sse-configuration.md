@@ -1,7 +1,7 @@
 # Nginx Server-Sent Events (SSE) Configuration
 
 ## Overview
-This document explains the nginx configuration required for Server-Sent Events (SSE) to work properly in the AiQuizMaker Docker Compose setup, specifically for the streaming quiz generation feature.
+This document explains the nginx configuration required for Server-Sent Events (SSE) to work properly in the 🧠 QuizAi Docker Compose setup, specifically for the streaming quiz generation feature.
 
 ## The Problem
 By default, nginx buffers HTTP responses, which breaks Server-Sent Events (SSE) streaming. When nginx acts as a reverse proxy in front of your Node.js backend, it needs special configuration to handle long-running SSE connections properly.

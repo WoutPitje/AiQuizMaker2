@@ -1,7 +1,7 @@
 # Single File Upload Workflow
 
 ## Overview
-AiQuizMaker has been updated to support only one PDF file upload and one quiz generation at a time, providing a simplified and focused user experience.
+🧠 QuizAi has been updated to support only one PDF file upload and one quiz generation at a time, providing a simplified and focused user experience.
 
 ## Key Changes
 
@@ -221,4 +221,4 @@ const uploadFile = async (file: File) => {
 - **Template Saving**: Save quiz generation configurations as templates
 - **History Tracking**: Track recently processed files and configurations
 
-The single file approach provides a cleaner, more focused experience while maintaining all the powerful quiz generation capabilities of AiQuizMaker. 
+The single file approach provides a cleaner, more focused experience while maintaining all the powerful quiz generation capabilities of QuizAi. 

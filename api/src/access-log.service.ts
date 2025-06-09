@@ -28,7 +28,7 @@ export class AccessLogService {
       const logEntry = {
         ...data,
         timestamp: new Date().toISOString(),
-        app: 'AiQuizMaker',
+        app: 'QuizAi',
         environment: this.configService.get('NODE_ENV', 'development'),
         domain: this.configService.get('DOMAIN', 'localhost')
       };

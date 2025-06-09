@@ -18,30 +18,30 @@ export default defineNuxtConfig({
     head: {
       charset: 'utf-8',
       viewport: 'width=device-width, initial-scale=1',
-      title: 'AI Quiz Maker - Transform PDFs into Interactive Quizzes',
+      title: '🧠 QuizAi - Transform PDFs into Interactive Quizzes',
       meta: [
         { name: 'description', content: 'Transform any PDF into an interactive AI-powered quiz instantly. Upload documents and generate personalized quizzes using advanced AI technology.' },
-        { name: 'keywords', content: 'AI quiz maker, PDF quiz generator, interactive quiz, educational technology, AI learning tools, quiz creation, document processing' },
-        { name: 'author', content: 'AI Quiz Maker' },
+        { name: 'keywords', content: 'QuizAi, AI quiz maker, PDF quiz generator, interactive quiz, educational technology, AI learning tools, quiz creation, document processing' },
+        { name: 'author', content: 'QuizAi' },
         { name: 'robots', content: 'index, follow' },
         // Open Graph
-        { property: 'og:title', content: 'AI Quiz Maker - Transform PDFs into Interactive Quizzes' },
+        { property: 'og:title', content: '🧠 QuizAi - Transform PDFs into Interactive Quizzes' },
         { property: 'og:description', content: 'Transform any PDF into an interactive AI-powered quiz instantly. Upload documents and generate personalized quizzes using advanced AI technology.' },
         { property: 'og:type', content: 'website' },
-        { property: 'og:url', content: 'https://quizmaker.ai' },
-        { property: 'og:image', content: 'https://quizmaker.ai/og-image.jpg' },
-        { property: 'og:site_name', content: 'AI Quiz Maker' },
+        { property: 'og:url', content: 'https://quizai.nl' },
+        { property: 'og:image', content: 'https://quizai.nl/og-image.jpg' },
+        { property: 'og:site_name', content: 'QuizAi' },
         // Twitter
         { name: 'twitter:card', content: 'summary_large_image' },
-        { name: 'twitter:title', content: 'AI Quiz Maker - Transform PDFs into Interactive Quizzes' },
+        { name: 'twitter:title', content: '🧠 QuizAi - Transform PDFs into Interactive Quizzes' },
         { name: 'twitter:description', content: 'Transform any PDF into an interactive AI-powered quiz instantly. Upload documents and generate personalized quizzes using advanced AI technology.' },
-        { name: 'twitter:image', content: 'https://quizmaker.ai/og-image.jpg' },
+        { name: 'twitter:image', content: 'https://quizai.nl/og-image.jpg' },
         // Additional SEO
         { name: 'theme-color', content: '#3B82F6' },
         { name: 'msapplication-TileColor', content: '#3B82F6' }
       ],
       link: [
-        { rel: 'canonical', href: 'https://quizmaker.ai' },
+        { rel: 'canonical', href: 'https://quizai.nl' },
         { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
         { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' }
       ],
@@ -51,9 +51,9 @@ export default defineNuxtConfig({
           innerHTML: JSON.stringify({
             '@context': 'https://schema.org',
             '@type': 'WebApplication',
-            'name': 'AI Quiz Maker',
+            'name': 'QuizAi',
             'description': 'Transform any PDF into an interactive AI-powered quiz instantly.',
-            'url': 'https://quizmaker.ai',
+            'url': 'https://quizai.nl',
             'applicationCategory': 'EducationalApplication',
             'operatingSystem': 'Any',
             'offers': {
@@ -71,7 +71,7 @@ export default defineNuxtConfig({
     public: {
       apiUrl: process.env.API_URL || 'http://localhost:8000/api', // Production API URL with nginx proxy
       apiBase: process.env.API_URL || 'http://localhost:8000/api', // For tracking API calls
-      siteUrl: process.env.SITE_URL || 'https://quizmaker.ai',
+      siteUrl: process.env.SITE_URL || 'https://quizai.nl',
       googleAnalyticsId: process.env.GOOGLE_ANALYTICS_ID || 'G-XXXXXXXXXX'
     }
   }

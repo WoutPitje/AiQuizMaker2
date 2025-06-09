@@ -1,7 +1,7 @@
 # Multi-Language Quiz Generation
 
 ## Overview
-AiQuizMaker now supports generating quizzes in 16 different languages, providing localized questions, answers, and explanations based on your PDF content.
+🧠 QuizAi now supports generating quizzes in 16 different languages, providing localized questions, answers, and explanations based on your PDF content.
 
 ## Supported Languages
 
@@ -74,9 +74,9 @@ curl http://localhost:3001/languages
 }
 ```
 
-### Generate Quiz with Language
+### Generate Quiz with Language (Streaming)
 ```bash
-curl -X POST http://localhost:3001/generate-quiz/[filename] \
+curl -X POST http://localhost:3001/generate-quiz-stream/[filename] \
   -H "Content-Type: application/json" \
   -d '{
     "language": "es",
@@ -317,4 +317,4 @@ To contribute new language support:
 3. Test with sample PDFs
 4. Submit pull request with documentation updates
 
-The multi-language feature makes AiQuizMaker accessible to a global audience while maintaining high-quality, culturally appropriate quiz generation across all supported languages. 
+The multi-language feature makes QuizAi accessible to a global audience while maintaining high-quality, culturally appropriate quiz generation across all supported languages. 

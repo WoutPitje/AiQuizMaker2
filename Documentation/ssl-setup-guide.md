@@ -1,6 +1,6 @@
 # SSL Setup Guide
 
-This guide explains how to add SSL/HTTPS support to your AI Quiz Maker application running on a VPS with Docker Compose.
+This guide explains how to add SSL/HTTPS support to your 🧠 QuizAi application running on a VPS with Docker Compose.
 
 ## Overview
 

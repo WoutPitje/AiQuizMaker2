@@ -47,7 +47,7 @@
             <div></div>
             <div class="text-center">
               <h1 class="text-3xl font-bold text-gray-900 mb-2">
-                🧠 AiQuizMaker
+                🧠 QuizAi
               </h1>
               <p class="text-gray-600">
                 AI-powered quiz from your PDF documents
@@ -94,7 +94,7 @@
             ☕ Buy me a coffee
           </a>
           <p class="text-xs text-gray-500 mt-2">
-            Support the development of AI Quiz Maker
+            Support the development of QuizAi
           </p>
         </div>
       </div>
@@ -110,7 +110,7 @@ import { useFileUploadStore } from '~/stores/fileUpload'
 
 // Page meta
 definePageMeta({
-  title: 'Quiz Viewer - AiQuizMaker',
+  title: 'Quiz Viewer - QuizAi',
   description: 'View your AI-generated quiz'
 })
 
@@ -165,7 +165,7 @@ onMounted(() => {
 watch(currentQuiz, (quiz) => {
   if (quiz) {
     useHead({
-      title: `${quiz.title} - AiQuizMaker`,
+      title: `${quiz.title} - QuizAi`,
       meta: [
         { name: 'description', content: quiz.description },
         { property: 'og:title', content: quiz.title },

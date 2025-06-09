@@ -1,6 +1,6 @@
 # Production Deployment Guide
 
-This guide explains how to deploy AI Quiz Maker in production using Docker Compose with the production environment configuration.
+This guide explains how to deploy 🧠 QuizAi in production using Docker Compose with the production environment configuration.
 
 ## Quick Start
 
@@ -120,11 +120,11 @@ docker image prune -f
 ```bash
 # Backup quiz storage
 tar -czf quiz-backup-$(date +%Y%m%d).tar.gz \
-  -C $(docker volume inspect aiquizmaker_api_storage -f '{{.Mountpoint}}') .
+  -C $(docker volume inspect quizai_api_storage -f '{{.Mountpoint}}') .
 
 # Backup uploads
 tar -czf uploads-backup-$(date +%Y%m%d).tar.gz \
-  -C $(docker volume inspect aiquizmaker_api_uploads -f '{{.Mountpoint}}') .
+  -C $(docker volume inspect quizai_api_uploads -f '{{.Mountpoint}}') .
 ```
 
 ## Troubleshooting

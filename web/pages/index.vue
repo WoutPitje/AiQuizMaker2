@@ -5,16 +5,26 @@
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div class="flex justify-between items-center">
           <div class="text-2xl font-bold text-gray-900">
-            AI Quiz Maker
+            🧠 QuizAi
           </div>
-          <a
-            href="https://buymeacoffee.com/woutpittens"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="inline-flex items-center px-3 py-2 bg-yellow-400 hover:bg-yellow-500 text-gray-900 text-sm font-medium rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md"
-          >
-            ☕ Buy me a coffee
-          </a>
+          <div class="flex items-center space-x-3">
+            <a
+              href="https://www.linkedin.com/in/wout-pittens-425b31200/"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md"
+            >
+              💼 LinkedIn
+            </a>
+            <a
+              href="https://buymeacoffee.com/woutpittens"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center px-3 py-2 bg-yellow-400 hover:bg-yellow-500 text-gray-900 text-sm font-medium rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md"
+            >
+              ☕ Buy me a coffee
+            </a>
+          </div>
         </div>
       </div>
     </header>
@@ -89,7 +99,7 @@
         <section class="mt-20 mb-16">
           <div class="text-center mb-12">
             <h2 class="text-3xl font-bold text-gray-900 mb-4">
-              Why Choose AI Quiz Maker?
+              Why Choose QuizAi?
             </h2>
             <p class="text-lg text-gray-600 max-w-2xl mx-auto">
               Experience the future of learning with our advanced AI-powered quiz generation platform
@@ -181,22 +191,29 @@
         <div class="text-center space-y-4">
           <div class="flex justify-center items-center space-x-6">
             <p class="text-sm text-gray-500">
-              AI Quiz Maker - Powered by Vue 3, Nuxt.js & OpenAI GPT
+              🧠 QuizAi - Powered by Vue 3, Nuxt.js & OpenAI GPT
             </p>
-            <div class="border-l border-gray-300 pl-6">
+            <div class="border-l border-gray-300 pl-6 flex items-center space-x-3">
+              <a
+                href="https://www.linkedin.com/in/wout-pittens-425b31200/"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md"
+              >
+                💼 Connect on LinkedIn
+              </a>
               <a
                 href="https://buymeacoffee.com/woutpittens"
                 target="_blank"
                 rel="noopener noreferrer"
                 class="inline-flex items-center px-4 py-2 bg-yellow-400 hover:bg-yellow-500 text-gray-900 text-sm font-medium rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md"
               >
-                
                 ☕ Buy me a coffee
               </a>
             </div>
           </div>
           <div class="text-xs text-gray-400">
-            <p>Support the development of AI Quiz Maker</p>
+            <p>Support the development of QuizAi • Connect with the developer</p>
           </div>
         </div>
       </div>
@@ -207,19 +224,19 @@
 <script setup lang="ts">
 // Enhanced SEO metadata for homepage
 useHead({
-  title: 'AI Quiz Maker - Transform PDFs into Interactive Quizzes Instantly',
+  title: '🧠 QuizAi - Transform PDFs into Interactive Quizzes Instantly',
   meta: [
     { name: 'description', content: 'Transform any PDF document into engaging, AI-powered quizzes in seconds. Upload your study materials, textbooks, or documents and generate personalized interactive quizzes automatically.' },
-    { name: 'keywords', content: 'AI quiz maker, PDF to quiz, interactive quiz generator, study tools, educational AI, quiz creation, learning platform, PDF quiz generator, AI education' },
-    { property: 'og:title', content: 'AI Quiz Maker - Transform PDFs into Interactive Quizzes Instantly' },
+    { name: 'keywords', content: 'QuizAi, AI quiz maker, PDF to quiz, interactive quiz generator, study tools, educational AI, quiz creation, learning platform, PDF quiz generator, AI education' },
+    { property: 'og:title', content: '🧠 QuizAi - Transform PDFs into Interactive Quizzes Instantly' },
     { property: 'og:description', content: 'Transform any PDF document into engaging, AI-powered quizzes in seconds. Upload your study materials, textbooks, or documents and generate personalized interactive quizzes automatically.' },
     { property: 'og:type', content: 'website' },
-    { property: 'og:url', content: 'https://quizmaker.ai' },
-    { name: 'twitter:title', content: 'AI Quiz Maker - Transform PDFs into Interactive Quizzes Instantly' },
+    { property: 'og:url', content: 'https://quizai.nl' },
+    { name: 'twitter:title', content: '🧠 QuizAi - Transform PDFs into Interactive Quizzes Instantly' },
     { name: 'twitter:description', content: 'Transform any PDF document into engaging, AI-powered quizzes in seconds. Upload your study materials and generate personalized quizzes automatically.' }
   ],
   link: [
-    { rel: 'canonical', href: 'https://quizmaker.ai' }
+    { rel: 'canonical', href: 'https://quizai.nl' }
   ]
 })
 

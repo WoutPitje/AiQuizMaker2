@@ -1,7 +1,7 @@
 # Environment Setup Guide
 
 ## Overview
-This guide covers the complete environment setup for the AiQuizMaker application, including system dependencies, environment variables, and performance optimization configurations.
+This guide covers the complete environment setup for the 🧠 QuizAi application, including system dependencies, environment variables, and performance optimization configurations.
 
 ## Prerequisites
 
@@ -144,7 +144,7 @@ NODE_OPTIONS="--stack-size=2048"
 ### 1. Clone Repository
 ```bash
 git clone <repository-url>
-cd AiQuizMaker
+cd QuizAi
 ```
 
 ### 2. Install Dependencies

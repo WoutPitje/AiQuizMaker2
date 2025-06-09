@@ -1,4 +1,4 @@
-# robots.txt for AI Quiz Maker
+# robots.txt for QuizAi
 User-agent: *
 Allow: /
 
@@ -14,7 +14,7 @@ Disallow: /.nuxt/
 Disallow: /.output/
 
 # Sitemap location
-Sitemap: https://quizmaker.ai/sitemap.xml
+Sitemap: https://quizai.nl/sitemap.xml
 
 # Crawl delay (optional - helps prevent overloading server)
 Crawl-delay: 1

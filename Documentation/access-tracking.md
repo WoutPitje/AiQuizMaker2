@@ -2,7 +2,7 @@
 
 ## Overview
 
-The AI Quiz Maker now includes a comprehensive access tracking system that monitors who accesses your application. All tracking data is sent to a webhook endpoint for centralized logging and analysis.
+🧠 QuizAi now includes a comprehensive access tracking system that monitors who accesses your application. All tracking data is sent to a webhook endpoint for centralized logging and analysis.
 
 ## Features
 
@@ -81,7 +81,7 @@ Each tracking event sends the following data structure:
   "responseTime": 150,
   "statusCode": 200,
   "sessionId": "uuid-v4-session-id",
-  "app": "AiQuizMaker",
+      "app": "QuizAi",
   "environment": "production",
   "domain": "quizai.nl"
 }

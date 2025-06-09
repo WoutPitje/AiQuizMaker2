@@ -1,7 +1,7 @@
 # Configuration Guide
 
 ## Overview
-AiQuizMaker supports various configuration options through environment variables, allowing you to customize the application behavior without modifying code.
+🧠 QuizAi supports various configuration options through environment variables, allowing you to customize the application behavior without modifying code.
 
 ## Environment Variables
 

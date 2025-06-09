@@ -1,7 +1,7 @@
 # Performance Optimization Guide
 
 ## Overview
-This guide covers performance optimizations implemented in AiQuizMaker and provides monitoring and tuning strategies for optimal performance.
+This guide covers performance optimizations implemented in 🧠 QuizAi and provides monitoring and tuning strategies for optimal performance.
 
 ## Recent Performance Improvements
 
@@ -402,4 +402,4 @@ crontab -e
 # 0 * * * * /path/to/performance-monitor.sh >> /var/log/quiz-performance.log
 ```
 
-Use this guide to optimize your AiQuizMaker instance for your specific use case and requirements. 
+Use this guide to optimize your QuizAi instance for your specific use case and requirements. 

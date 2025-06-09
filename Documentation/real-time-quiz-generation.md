@@ -1,7 +1,7 @@
 # Real-Time Quiz Generation
 
 ## Overview
-AiQuizMaker now supports revolutionary real-time quiz generation, allowing users to see questions appear live as they're created, dramatically improving the user experience and providing immediate feedback during the generation process.
+🧠 QuizAi now supports revolutionary real-time quiz generation, allowing users to see questions appear live as they're created, dramatically improving the user experience and providing immediate feedback during the generation process.
 
 ## Features
 
@@ -62,6 +62,8 @@ pdfToQuizStream(filePath: string, options: PdfToQuizOptions = {}): Observable<an
 - `page-skipped`: Page skipped (insufficient content)
 - `page-warning`: Page processing warning
 - `page-error`: Page processing error
+- `generating-metadata`: AI generating title and description
+- `metadata-generated`: AI title and description completed
 - `finalizing`: Creating final quiz object
 - `completed`: Generation finished with full quiz
 - `error`: Fatal error occurred
@@ -90,6 +92,10 @@ data: {"type":"pdf-processed","data":{"totalPages":5,"pagesToProcess":4,"message
 data: {"type":"page-processing","data":{"pageNumber":1,"currentPage":1,"totalPages":4,"message":"Generating questions for page 1..."}}
 
 data: {"type":"question-generated","data":{"question":{...},"totalQuestions":1,"pageNumber":1,"message":"Generated question 1"}}
+
+data: {"type":"generating-metadata","data":{"message":"Generating AI-powered title and description...","totalQuestions":5}}
+
+data: {"type":"metadata-generated","data":{"message":"AI title and description generated successfully!","title":"Machine Learning Fundamentals","description":"Comprehensive quiz covering key concepts in machine learning..."}}
 
 data: {"type":"completed","data":{"quiz":{...},"magicLink":"ABC123","shareUrl":"http://localhost:3000/quiz/ABC123","stats":{...}}}
 ```

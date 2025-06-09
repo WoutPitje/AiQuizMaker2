@@ -74,100 +74,7 @@ export class QuizmakerService {
     }
   }
 
-  /**
-   * Convert a PDF file to a quiz using AI and save it with a magic link
-   */
-  async pdfToQuiz(filePath: string, options: PdfToQuizOptions = {}): Promise<{ quiz: Quiz; magicLink: string }> {
-    const defaultOptions: Required<PdfToQuizOptions> = {
-      questionsPerPage: options.questionsPerPage ?? parseInt(process.env.DEFAULT_QUESTIONS_PER_PAGE || '2'),
-      difficulty: options.difficulty ?? 'mixed',
-      includeExplanations: options.includeExplanations ?? true,
-      generateImages: options.generateImages ?? false,
-      language: options.language ?? 'en'
-    };
 
-    this.logger.log(`🎯 Starting PDF to quiz conversion for: ${filePath}`);
-    this.logger.log(`📋 Options: ${JSON.stringify(defaultOptions)}`);
-
-    try {
-      // Step 1: Process PDF file
-      const fileResult = await this.fileServerService.splitPdfToPages(filePath, defaultOptions.generateImages);
-
-      if (!fileResult.pages || fileResult.pages.length === 0) {
-        throw new Error('No readable content found in the PDF');
-      }
-
-      this.logger.log(`📄 PDF processing completed: ${fileResult.pages.length} pages extracted`);
-
-      // Step 2: Generate questions for each page using AI
-      const allQuestions: QuizQuestion[] = [];
-      const maxPages = parseInt(process.env.MAX_PAGES_PER_PDF || '50');
-      const pagesToProcess = fileResult.pages.slice(0, maxPages);
-
-      for (const page of pagesToProcess) {
-        // Skip pages with insufficient content
-        if (page.textContent.trim().length < 50) {
-          this.logger.warn(`⏭️ Skipping page ${page.pageNumber} - insufficient content (${page.textContent.length} characters)`);
-          continue;
-        }
-
-        this.logger.log(`🤖 Processing page ${page.pageNumber}/${fileResult.totalPages} (${page.textContent.length} characters)`);
-
-        try {
-          const questions = await this.aiService.generateQuestionsFromPageContent(
-            page.textContent,
-            page.pageNumber,
-            defaultOptions
-          );
-
-          if (questions.length > 0) {
-            allQuestions.push(...questions);
-            this.logger.log(`✅ Generated ${questions.length} questions for page ${page.pageNumber}`);
-          } else {
-            this.logger.warn(`⚠️ No questions generated for page ${page.pageNumber}`);
-          }
-
-        } catch (error) {
-          this.logger.error(`❌ Failed to generate questions for page ${page.pageNumber}: ${error.message}`);
-          // Continue with other pages instead of failing completely
-        }
-      }
-
-      if (allQuestions.length === 0) {
-        throw new Error('No questions could be generated from the PDF content');
-      }
-
-      // Step 3: Create quiz object
-      const quiz: Quiz = {
-        id: `quiz_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        title: this.generateQuizTitle(path.basename(filePath), defaultOptions.language),
-        description: this.generateQuizDescription(fileResult.totalPages, allQuestions.length, defaultOptions.language),
-        questions: allQuestions,
-        metadata: {
-          sourceFile: path.basename(filePath),
-          totalPages: fileResult.totalPages,
-          createdAt: new Date(),
-          estimatedDuration: Math.ceil(allQuestions.length * 1.5), // ~1.5 minutes per question
-          language: defaultOptions.language,
-          questionsPerPage: defaultOptions.questionsPerPage,
-          difficulty: defaultOptions.difficulty
-        }
-      };
-
-      // Step 4: Save quiz and generate magic link
-      const magicLink = await this.saveQuiz(quiz);
-
-      this.logger.log(`🎉 Quiz generation completed successfully!`);
-      this.logger.log(`📊 Final stats: ${allQuestions.length} questions from ${pagesToProcess.length} pages`);
-      this.logger.log(`🔗 Magic link: ${magicLink}`);
-
-      return { quiz, magicLink };
-
-    } catch (error) {
-      this.logger.error(`💥 Quiz generation failed: ${error.message}`, error.stack);
-      throw new Error(`Failed to generate quiz: ${error.message}`);
-    }
-  }
 
   /**
    * Get quiz by magic link
@@ -298,6 +205,46 @@ export class QuizmakerService {
   }
 
   /**
+   * Manual cleanup of old uploaded files (utility method)
+   */
+  async cleanupOldUploadedFiles(olderThanHours: number = 24): Promise<{ cleaned: number; errors: string[] }> {
+    const uploadsDir = './uploads';
+    let cleaned = 0;
+    const errors: string[] = [];
+
+    try {
+      const files = await fs.readdir(uploadsDir);
+      const cutoffTime = Date.now() - (olderThanHours * 60 * 60 * 1000);
+
+      for (const file of files) {
+        try {
+          const filePath = path.join(uploadsDir, file);
+          const stats = await fs.stat(filePath);
+          
+          if (stats.birthtimeMs < cutoffTime) {
+            await fs.unlink(filePath);
+            cleaned++;
+            this.logger.log(`🗑️ Cleaned up old file: ${file} (${Math.round((Date.now() - stats.birthtimeMs) / (1000 * 60 * 60))}h old)`);
+          }
+        } catch (error) {
+          const errorMsg = `Failed to process file ${file}: ${error.message}`;
+          errors.push(errorMsg);
+          this.logger.warn(`⚠️ ${errorMsg}`);
+        }
+      }
+
+      this.logger.log(`🧹 Cleanup completed: ${cleaned} files removed, ${errors.length} errors`);
+      return { cleaned, errors };
+
+    } catch (error) {
+      const errorMsg = `Failed to read uploads directory: ${error.message}`;
+      errors.push(errorMsg);
+      this.logger.error(`❌ ${errorMsg}`);
+      return { cleaned: 0, errors };
+    }
+  }
+
+  /**
    * Utility methods
    */
   private generateQuizId(): string {
@@ -382,7 +329,7 @@ export class QuizmakerService {
     };
 
     const quizId = `quiz_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const allQuestions: QuizQuestion[] = [];
+    let tempFilePath: string | null = null;
 
     try {
       // Emit start event
@@ -397,7 +344,10 @@ export class QuizmakerService {
 
       this.logger.log(`🎯 Starting streaming PDF to quiz conversion for: ${filePath}`);
 
-      // Step 1: Process PDF file
+      // Step 1: Create temporary storage file
+      tempFilePath = await this.createTempQuizFile(quizId);
+
+      // Step 2: Process PDF file
       subject.next({
         type: 'progress',
         data: { message: 'Processing PDF file...', stage: 'pdf-processing' }
@@ -423,7 +373,9 @@ export class QuizmakerService {
 
       this.logger.log(`📄 PDF processing completed: ${fileResult.pages.length} pages extracted`);
 
-      // Step 2: Generate questions for each page using AI
+      let totalQuestions = 0;
+
+      // Step 3: Generate questions for each page using AI
       for (let i = 0; i < pagesToProcess.length; i++) {
         const page = pagesToProcess[i];
         
@@ -459,7 +411,9 @@ export class QuizmakerService {
           );
 
           if (questions.length > 0) {
-            allQuestions.push(...questions);
+            // Store questions incrementally to disk instead of memory
+            await this.appendQuestionsToTempFile(tempFilePath, questions);
+            totalQuestions += questions.length;
             
             // Emit each new question immediately
             for (const question of questions) {
@@ -467,14 +421,14 @@ export class QuizmakerService {
                 type: 'question-generated',
                 data: {
                   question,
-                  totalQuestions: allQuestions.length,
+                  totalQuestions,
                   pageNumber: page.pageNumber,
-                  message: `Generated question ${allQuestions.length}`
+                  message: `Generated question ${totalQuestions}`
                 }
               });
             }
 
-            this.logger.log(`✅ Generated ${questions.length} questions for page ${page.pageNumber}`);
+            this.logger.log(`✅ Generated ${questions.length} questions for page ${page.pageNumber} (total: ${totalQuestions})`);
           } else {
             subject.next({
               type: 'page-warning',
@@ -499,34 +453,87 @@ export class QuizmakerService {
         }
       }
 
-      if (allQuestions.length === 0) {
+      if (totalQuestions === 0) {
         throw new Error('No questions could be generated from the PDF content');
       }
 
-      // Step 3: Create final quiz object
+      // Step 4: Generate AI-powered title and description
       subject.next({
-        type: 'finalizing',
-        data: { message: 'Creating final quiz...', totalQuestions: allQuestions.length }
+        type: 'generating-metadata',
+        data: { message: 'Generating AI-powered title and description...', totalQuestions }
       });
 
-      const quiz: Quiz = {
+      // Collect all document content for AI generation
+      const allDocumentContent = pagesToProcess
+        .map(page => page.textContent)
+        .join('\n\n')
+        .substring(0, 10000); // Limit to first 10,000 characters for performance
+
+      // Generate AI title and description in parallel
+      this.logger.log(`🤖 Generating AI-powered title and description...`);
+      const [aiTitle, aiDescription] = await Promise.all([
+        this.aiService.generateQuizTitle(
+          allDocumentContent,
+          path.basename(filePath),
+          defaultOptions.language
+        ),
+        this.aiService.generateQuizDescription(
+          allDocumentContent,
+          fileResult.totalPages,
+          totalQuestions,
+          defaultOptions.language
+        )
+      ]);
+
+      subject.next({
+        type: 'metadata-generated',
+        data: { 
+          message: 'AI title and description generated successfully!',
+          title: aiTitle,
+          description: aiDescription.substring(0, 100) + '...'
+        }
+      });
+
+      // Step 5: Finalize quiz from temporary storage
+      subject.next({
+        type: 'finalizing',
+        data: { message: 'Creating final quiz...', totalQuestions }
+      });
+
+      const finalQuizData: Partial<Quiz> = {
         id: quizId,
-        title: this.generateQuizTitle(path.basename(filePath), defaultOptions.language),
-        description: this.generateQuizDescription(fileResult.totalPages, allQuestions.length, defaultOptions.language),
-        questions: allQuestions,
+        title: aiTitle,
+        description: aiDescription,
         metadata: {
           sourceFile: path.basename(filePath),
           totalPages: fileResult.totalPages,
           createdAt: new Date(),
-          estimatedDuration: Math.ceil(allQuestions.length * 1.5),
+          estimatedDuration: Math.ceil(totalQuestions * 1.5),
           language: defaultOptions.language,
           questionsPerPage: defaultOptions.questionsPerPage,
           difficulty: defaultOptions.difficulty
         }
       };
 
-      // Step 4: Save quiz and generate magic link
+      const quiz = await this.finalizeTempQuiz(tempFilePath, finalQuizData);
+      tempFilePath = null; // Mark as cleaned up
+
+      // Step 6: Save quiz and generate magic link
       const magicLink = await this.saveQuiz(quiz);
+
+      // Step 7: Clean up uploaded PDF file since we no longer need it
+      const shouldCleanup = process.env.CLEANUP_UPLOADED_FILES !== 'false';
+      if (shouldCleanup) {
+        try {
+          await fs.unlink(filePath);
+          this.logger.log(`🗑️ Cleaned up uploaded PDF file: ${filePath}`);
+        } catch (cleanupError) {
+          // Don't fail the whole process if cleanup fails, just log it
+          this.logger.warn(`⚠️ Failed to clean up uploaded PDF file: ${cleanupError.message}`);
+        }
+      } else {
+        this.logger.log(`📁 Keeping uploaded PDF file for debugging: ${filePath}`);
+      }
 
       // Emit completion
       subject.next({
@@ -537,7 +544,7 @@ export class QuizmakerService {
           shareUrl: `${process.env.WEB_URL || 'http://localhost:3000'}/quiz/${magicLink}`,
           message: 'Quiz generation completed successfully!',
           stats: {
-            totalQuestions: allQuestions.length,
+            totalQuestions,
             pagesProcessed: pagesToProcess.length,
             totalPages: fileResult.totalPages
           }
@@ -550,6 +557,29 @@ export class QuizmakerService {
     } catch (error) {
       this.logger.error(`💥 Streaming quiz generation failed: ${error.message}`, error.stack);
       
+      // Clean up temporary file if it exists
+      if (tempFilePath) {
+        try {
+          await fs.unlink(tempFilePath);
+          this.logger.log(`🗑️ Cleaned up temporary file after error: ${tempFilePath}`);
+        } catch (cleanupError) {
+          this.logger.warn(`⚠️ Failed to clean up temporary file: ${cleanupError.message}`);
+        }
+      }
+
+      // Clean up uploaded PDF file on failure
+      const shouldCleanup = process.env.CLEANUP_UPLOADED_FILES !== 'false';
+      if (shouldCleanup) {
+        try {
+          await fs.unlink(filePath);
+          this.logger.log(`🗑️ Cleaned up uploaded PDF file after error: ${filePath}`);
+        } catch (cleanupError) {
+          this.logger.warn(`⚠️ Failed to clean up uploaded PDF file: ${cleanupError.message}`);
+        }
+      } else {
+        this.logger.log(`📁 Keeping uploaded PDF file after error for debugging: ${filePath}`);
+      }
+      
       subject.next({
         type: 'error',
         data: {
@@ -560,6 +590,76 @@ export class QuizmakerService {
       });
       
       subject.error(error);
+    }
+  }
+
+  /**
+   * Create a temporary storage file for quiz generation
+   */
+  private async createTempQuizFile(quizId: string): Promise<string> {
+    const tempFilePath = path.join(this.quizStorageDir, `temp_${quizId}.json`);
+    const initialData = {
+      id: quizId,
+      questions: [],
+      metadata: {
+        createdAt: new Date(),
+        status: 'generating'
+      }
+    };
+    
+    await fs.writeFile(tempFilePath, JSON.stringify(initialData, null, 2), 'utf8');
+    this.logger.log(`📝 Created temporary quiz file: ${tempFilePath}`);
+    
+    return tempFilePath;
+  }
+
+  /**
+   * Append questions to temporary quiz file
+   */
+  private async appendQuestionsToTempFile(tempFilePath: string, questions: QuizQuestion[]): Promise<void> {
+    try {
+      const fileData = await fs.readFile(tempFilePath, 'utf8');
+      const tempQuiz = JSON.parse(fileData);
+      
+      tempQuiz.questions.push(...questions);
+      tempQuiz.metadata.lastUpdated = new Date();
+      
+      await fs.writeFile(tempFilePath, JSON.stringify(tempQuiz, null, 2), 'utf8');
+      this.logger.debug(`✏️ Appended ${questions.length} questions to temp file (total: ${tempQuiz.questions.length})`);
+    } catch (error) {
+      this.logger.error(`❌ Failed to append questions to temp file: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Finalize temporary quiz file into permanent storage
+   */
+  private async finalizeTempQuiz(tempFilePath: string, finalQuizData: Partial<Quiz>): Promise<Quiz> {
+    try {
+      const fileData = await fs.readFile(tempFilePath, 'utf8');
+      const tempQuiz = JSON.parse(fileData);
+      
+      const finalQuiz: Quiz = {
+        ...tempQuiz,
+        ...finalQuizData,
+        questions: tempQuiz.questions,
+        metadata: {
+          ...tempQuiz.metadata,
+          ...finalQuizData.metadata,
+          status: 'completed',
+          finalizedAt: new Date()
+        }
+      };
+      
+      // Clean up temp file
+      await fs.unlink(tempFilePath);
+      this.logger.log(`🗑️ Cleaned up temporary file: ${tempFilePath}`);
+      
+      return finalQuiz;
+    } catch (error) {
+      this.logger.error(`❌ Failed to finalize temp quiz: ${error.message}`);
+      throw error;
     }
   }
 } 

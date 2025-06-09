@@ -1,6 +1,6 @@
 # Docker Deployment Guide
 
-This guide explains how to deploy AI Quiz Maker using Docker, including Portainer setup.
+This guide explains how to deploy 🧠 QuizAi using Docker, including Portainer setup.
 
 ## Quick Start
 
@@ -29,7 +29,7 @@ This guide explains how to deploy AI Quiz Maker using Docker, including Portaine
 
 1. **Navigate to Portainer UI**
 2. **Go to Stacks → Add Stack**
-3. **Stack Name:** `aiquizmaker`
+3. **Stack Name:** `quizai`
 4. **Build Method:** Choose "Web editor"
 5. **Paste the docker-compose.yml content**
 6. **Environment Variables:**
@@ -44,7 +44,7 @@ This guide explains how to deploy AI Quiz Maker using Docker, including Portaine
 ### Method 2: Using Git Repository
 
 1. **In Portainer, go to Stacks → Add Stack**
-2. **Stack Name:** `aiquizmaker`
+2. **Stack Name:** `quizai`
 3. **Build Method:** Choose "Repository"
 4. **Repository URL:** Your git repository URL
 5. **Repository reference:** `main` or your branch name
@@ -74,7 +74,7 @@ This guide explains how to deploy AI Quiz Maker using Docker, including Portaine
 
 - **Frontend (web):** 3000
 - **Backend (api):** 3001
-- **Internal networking:** Containers communicate via `aiquizmaker-network`
+- **Internal networking:** Containers communicate via `quizai-network`
 
 ### Volume Persistence
 
@@ -235,13 +235,13 @@ version: '3.8'
 
 services:
   api:
-    image: aiquizmaker-api:v1.0.0
+    image: quizai-api:v1.0.0
     restart: always
     environment:
       - NODE_ENV=production
     volumes:
-      - /opt/aiquizmaker/uploads:/app/uploads
-      - /opt/aiquizmaker/storage:/app/quiz-storage
+      - /opt/quizai/uploads:/app/uploads
+      - /opt/quizai/storage:/app/quiz-storage
     logging:
       driver: "json-file"
       options:

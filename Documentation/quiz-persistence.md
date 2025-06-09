@@ -1,7 +1,7 @@
 # Quiz Persistence & Magic Links
 
 ## Overview
-AiQuizMaker now automatically saves all generated quizzes with secure magic links, enabling easy sharing and long-term access to created quizzes.
+🧠 QuizAi now automatically saves all generated quizzes with secure magic links, enabling easy sharing and long-term access to created quizzes.
 
 ## Features
 
@@ -19,9 +19,9 @@ AiQuizMaker now automatically saves all generated quizzes with secure magic link
 
 ## API Endpoints
 
-### Generate Quiz with Magic Link
+### Generate Quiz with Magic Link (Streaming)
 ```bash
-POST /generate-quiz/[filename]
+POST /generate-quiz-stream/[filename]
 Content-Type: application/json
 
 {
@@ -32,15 +32,13 @@ Content-Type: application/json
 }
 ```
 
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Quiz generated successfully",
-  "quiz": { /* Quiz object */ },
-  "magicLink": "ABC123XYZ...",
-  "shareUrl": "http://localhost:3000/quiz/ABC123XYZ..."
-}
+**Response (Server-Sent Events):**
+```
+data: {"type":"start","data":{"quizId":"quiz_123","message":"Starting quiz generation..."}}
+
+data: {"type":"question-generated","data":{"question":{...},"totalQuestions":1}}
+
+data: {"type":"completed","data":{"quiz":{...},"magicLink":"ABC123XYZ...","shareUrl":"http://localhost:3000/quiz/ABC123XYZ..."}}
 ```
 
 ### Access Quiz by Magic Link
