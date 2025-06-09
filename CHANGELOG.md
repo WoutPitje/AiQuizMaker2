@@ -4,6 +4,81 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased] - 2024-12-19
 
+### 📱 Mobile App Live Quiz Generation Enhancement
+- **Live Quiz Generation Screen**: Implemented real-time quiz generation experience matching web app
+  - **Immediate Navigation**: Quiz generation now navigates to dedicated live generation screen instantly
+  - **Real-Time Question Display**: Questions appear live as they're generated with smooth animations
+  - **Enhanced Progress Tracking**: Visual progress bar with percentage, status updates, and live statistics
+  - **Interactive Question Preview**: Generated questions displayed with correct answer highlighting
+  - **Auto-Navigation**: Seamless transition to quiz screen when generation completes
+  - **Smooth Animations**: Scale and opacity animations for newly generated questions
+  - **Auto-Scrolling**: Questions list automatically scrolls to show latest generated question
+- **Improved Mobile UX**: Enhanced user experience matching web app's live generation flow
+  - **Progress Section**: Clear file info, status messages, and visual progress indicators
+  - **Question Cards**: Beautiful question cards with option highlighting and difficulty badges
+  - **Statistics Display**: Live counters for generated questions and processed pages
+  - **Error Handling**: Comprehensive error messaging and recovery options
+  - **Mobile-First Design**: Optimized layout and interactions for mobile devices
+- **Fixed Upload State Bug**: Fixed issue where "Generate Quiz" button showed "upload file first" error after successful upload
+  - **File Reference Fix**: Ensured `_uploadedFile` is properly set during successful upload
+  - **State Consistency**: Fixed mismatch between upload success state and quiz generation validation
+- **Fixed API URL Configuration**: Updated live quiz generation to use proper API URL from constants
+  - **Constants Usage**: Replaced hardcoded `localhost:8000` with `AppConstants.apiUrl` 
+  - **Correct Endpoint**: Now uses `http://169.254.139.126:3001/generate-quiz-stream/filename` matching web app
+  - **Status Code Fix**: Accept both 200 and 201 HTTP status codes as successful responses
+- **Interactive Quiz Experience**: Questions are now immediately interactive as they appear, matching web app UX
+  - **No Separate Quiz Screen**: Removed "Start Quiz" navigation - questions are answerable right in the generation screen
+  - **Real-Time Interaction**: Users can answer questions as they're generated, just like the web app
+  - **Show/Hide Answers**: Added toggle buttons for each question to reveal correct answers and explanations
+  - **Visual Feedback**: Color-coded options (green for correct, red for wrong, blue for selected)
+  - **Live Score Tracking**: Real-time score card showing answered/correct questions and percentage
+  - **Explanation Display**: Rich explanation UI with lightbulb icon and formatted text
+
+### 📱 Mobile App Quiz Generation Fix
+- **Fixed Streaming Type Compatibility**: Resolved the Flutter streaming quiz generation issue on iOS
+  - **Type Mismatch Fix**: Fixed `Utf8Decoder` type compatibility issue in streaming implementation
+  - **Stream Transformation**: Updated from `const Utf8Decoder()` to `utf8.decoder` for proper type casting
+  - **Enhanced Type Safety**: Added explicit `cast<List<int>>()` to ensure proper stream type handling
+  - **Better Error Handling**: Improved SSE (Server-Sent Events) parsing with proper error catching
+  - **API URL Correction**: Updated mobile app API URL to match working web implementation (`http://localhost:8000/api`)
+- **Improved Event Handling**: Enhanced quiz generation event processing to match web app functionality
+  - **Web App Parity**: Updated mobile event handling to support all streaming event types from web implementation
+  - **Enhanced Events**: Added support for `start`, `pdf-processed`, `page-processing`, `question-generated`, `page-skipped`, `page-warning`, `page-error`, `finalizing`, and `completed` events
+  - **Better Progress Tracking**: Improved progress indicators and user feedback during quiz generation
+  - **State Management**: Enhanced state cleanup and quiz completion handling
+- **Mobile App Functionality Restored**: Quiz generation should now work properly on iOS matching the web app experience
+  - **Streaming Quiz Generation**: Real-time quiz generation with progress updates
+  - **Error Recovery**: Better error handling and user feedback
+  - **Consistent Experience**: Mobile app now matches web app quiz generation flow
+- **Enhanced Mobile Quiz Experience**: Created dedicated quiz screen for better mobile UX
+  - **New Quiz Screen**: Created `StreamingQuizScreen` that matches web app quiz display functionality
+  - **Mobile Navigation**: Quiz automatically opens in new screen when generation completes
+  - **Full Feature Parity**: Mobile quiz screen includes all web app features:
+    - Interactive question answering with immediate feedback
+    - Show/hide answer functionality with explanations
+    - Score tracking and progress indicators
+    - Quiz sharing with magic links
+    - Generation statistics display
+    - Copy-to-clipboard functionality for sharing
+  - **Improved Home Screen**: Simplified to show only generation progress, quiz opens in dedicated screen
+  - **Better Mobile UX**: Follows mobile app navigation patterns instead of single-page web approach
+- **Mobile App Model & File Picker Fixes**: Resolved compilation errors and improved file selection
+  - **Enhanced Quiz Model**: Added missing properties to match web app structure:
+    - Added `magicLink`, `description`, `language`, `createdAt`, `sourceFile` to Quiz model
+    - Added `difficulty`, `pageNumber` properties to Question model
+    - Updated `correctAnswer` type to String for consistency with web app
+  - **Improved File Picker**: Enhanced file selection reliability on iOS
+    - Added fallback file picker approach for better device compatibility
+    - Enhanced file validation with extension checking
+    - Better error handling and user feedback for file selection issues
+         - Added detailed logging for debugging file picker problems
+  - **Fixed Quiz Screen Compatibility**: Updated existing quiz screen to work with new String-based answer format
+    - Fixed array index error when accessing correct answers
+    - Updated score calculation to handle option text vs letter format conversion
+    - Maintained backward compatibility with existing quiz functionality
+
+## [Unreleased] - 2024-12-19
+
 ### 📱 Flutter Mobile App Development Initiative
 - **Flutter Mobile App Setup**: Initiated development of native iOS and Android mobile applications for AI Quiz Maker
   - **Flutter SDK Installation**: Successfully installed Flutter 3.32.2 with Dart 3.8.1 on development environment

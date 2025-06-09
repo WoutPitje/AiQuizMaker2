@@ -1,6 +1,6 @@
 class AppConstants {
   // API Configuration
-  static const String devApiUrl = 'http://127.0.0.1:3001';
+  static const String devApiUrl = 'http://169.254.139.126:3001/';
   static const String prodApiUrl = 'https://quizai.nl/api';
   
   // Environment
@@ -13,6 +13,8 @@ class AppConstants {
   static const String languagesEndpoint = '/languages';
   static const String quizzesEndpoint = '/quizzes';
   static const String filesEndpoint = '/files';
+  static const String quizEndpoint = '/quiz';
+  static const String streamingEndpoint = '/generate-quiz-stream';
   
   // Quiz Generation
   static String quizStreamEndpoint(String filename) => '/generate-quiz-stream/$filename';

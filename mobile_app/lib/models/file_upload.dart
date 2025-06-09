@@ -1,91 +1,51 @@
-import 'package:json_annotation/json_annotation.dart';
+class UploadedFile {
+  final String filename;
+  final String? originalname;
+  final String? mimetype;
+  final int size;
+  final String path;
+  final DateTime uploadedAt;
 
-part 'file_upload.g.dart';
+  UploadedFile({
+    required this.filename,
+    this.originalname,
+    this.mimetype,
+    required this.size,
+    required this.path,
+    required this.uploadedAt,
+  });
 
-@JsonSerializable()
-class UploadResponse {
+  factory UploadedFile.fromJson(Map<String, dynamic> json) {
+    return UploadedFile(
+      filename: json['filename'] ?? '',
+      originalname: json['originalname'],
+      mimetype: json['mimetype'],
+      size: json['size'] ?? 0,
+      path: json['path'] ?? '',
+      uploadedAt: DateTime.now(), // API doesn't return this, so use current time
+    );
+  }
+}
+
+class FileUploadResponse {
   final bool success;
-  final String message;
+  final String? message;
   final UploadedFile? file;
   final String? error;
 
-  const UploadResponse({
+  FileUploadResponse({
     required this.success,
-    required this.message,
+    this.message,
     this.file,
     this.error,
   });
 
-  factory UploadResponse.fromJson(Map<String, dynamic> json) => _$UploadResponseFromJson(json);
-  Map<String, dynamic> toJson() => _$UploadResponseToJson(this);
-}
-
-@JsonSerializable()
-class UploadedFile {
-  final String filename;
-  final String originalname;
-  final String mimetype;
-  final int size;
-  final String path;
-
-  const UploadedFile({
-    required this.filename,
-    required this.originalname,
-    required this.mimetype,
-    required this.size,
-    required this.path,
-  });
-
-  factory UploadedFile.fromJson(Map<String, dynamic> json) => _$UploadedFileFromJson(json);
-  Map<String, dynamic> toJson() => _$UploadedFileToJson(this);
-  
-  String get sizeInMB => '${(size / (1024 * 1024)).toStringAsFixed(1)} MB';
-}
-
-@JsonSerializable()
-class ApiConfig {
-  final bool success;
-  final ConfigData config;
-
-  const ApiConfig({
-    required this.success,
-    required this.config,
-  });
-
-  factory ApiConfig.fromJson(Map<String, dynamic> json) => _$ApiConfigFromJson(json);
-  Map<String, dynamic> toJson() => _$ApiConfigToJson(this);
-}
-
-@JsonSerializable()
-class ConfigData {
-  final int maxPdfSize;
-  final int maxPdfSizeMB;
-  final int maxPagesPerPdf;
-  final int defaultQuestionsPerPage;
-  final List<Language> supportedLanguages;
-
-  const ConfigData({
-    required this.maxPdfSize,
-    required this.maxPdfSizeMB,
-    required this.maxPagesPerPdf,
-    required this.defaultQuestionsPerPage,
-    required this.supportedLanguages,
-  });
-
-  factory ConfigData.fromJson(Map<String, dynamic> json) => _$ConfigDataFromJson(json);
-  Map<String, dynamic> toJson() => _$ConfigDataToJson(this);
-}
-
-@JsonSerializable()
-class Language {
-  final String code;
-  final String name;
-
-  const Language({
-    required this.code,
-    required this.name,
-  });
-
-  factory Language.fromJson(Map<String, dynamic> json) => _$LanguageFromJson(json);
-  Map<String, dynamic> toJson() => _$LanguageToJson(this);
+  factory FileUploadResponse.fromJson(Map<String, dynamic> json) {
+    return FileUploadResponse(
+      success: json['success'] ?? false,
+      message: json['message'],
+      file: json['file'] != null ? UploadedFile.fromJson(json['file']) : null,
+      error: json['error'],
+    );
+  }
 } 
