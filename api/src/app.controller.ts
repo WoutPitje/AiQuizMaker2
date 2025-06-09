@@ -306,6 +306,127 @@ export class AppController {
     }
   }
 
+  @Get('files')
+  async listUploadedFiles() {
+    try {
+      const fs = require('fs');
+      const path = require('path');
+      const uploadsDir = './uploads';
+      
+      if (!fs.existsSync(uploadsDir)) {
+        return {
+          success: true,
+          files: [],
+          total: 0
+        };
+      }
+
+      const files = fs.readdirSync(uploadsDir).map(filename => {
+        const filePath = path.join(uploadsDir, filename);
+        const stats = fs.statSync(filePath);
+        
+        return {
+          filename,
+          originalName: filename.includes('-') ? filename.split('-').slice(2).join('-') : filename,
+          size: stats.size,
+          sizeFormatted: this.formatFileSize(stats.size),
+          created: stats.birthtime,
+          modified: stats.mtime,
+          downloadUrl: `/files/${filename}`
+        };
+      }).sort((a, b) => b.created.getTime() - a.created.getTime());
+
+      return {
+        success: true,
+        files,
+        total: files.length,
+        totalSize: files.reduce((sum, file) => sum + file.size, 0),
+        totalSizeFormatted: this.formatFileSize(files.reduce((sum, file) => sum + file.size, 0))
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Failed to list files',
+        error: error.message
+      };
+    }
+  }
+
+  @Get('files/:filename')
+  async downloadFile(@Param('filename') filename: string, @Res() res: Response) {
+    try {
+      const path = require('path');
+      const fs = require('fs');
+      const filePath = path.join('./uploads', filename);
+      
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({
+          success: false,
+          message: 'File not found'
+        });
+      }
+
+      const stats = fs.statSync(filePath);
+      
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Content-Length', stats.size);
+      
+      const fileStream = fs.createReadStream(filePath);
+      fileStream.pipe(res);
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: 'Failed to download file',
+        error: error.message
+      });
+    }
+  }
+
+  @Get('files/:filename/info')
+  async getFileInfo(@Param('filename') filename: string) {
+    try {
+      const path = require('path');
+      const fs = require('fs');
+      const filePath = path.join('./uploads', filename);
+      
+      if (!fs.existsSync(filePath)) {
+        return {
+          success: false,
+          message: 'File not found'
+        };
+      }
+
+      const stats = fs.statSync(filePath);
+      
+      return {
+        success: true,
+        file: {
+          filename,
+          size: stats.size,
+          sizeFormatted: this.formatFileSize(stats.size),
+          created: stats.birthtime,
+          modified: stats.mtime,
+          path: filePath
+        }
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Failed to get file info',
+        error: error.message
+      };
+    }
+  }
+
+  private formatFileSize(bytes: number): string {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }
+
   private getClientIP(req: Request): string {
     // Check various headers for the real IP (in order of preference)
     const forwarded = req.get('X-Forwarded-For');

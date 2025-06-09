@@ -1,2 +1,20 @@
-User-Agent: *
-Disallow:
+# robots.txt for AI Quiz Maker
+User-agent: *
+Allow: /
+
+# Important pages
+Allow: /
+Allow: /about
+Allow: /privacy
+Allow: /terms
+
+# Block admin/dev directories (if any)
+Disallow: /api/
+Disallow: /.nuxt/
+Disallow: /.output/
+
+# Sitemap location
+Sitemap: https://quizmaker.ai/sitemap.xml
+
+# Crawl delay (optional - helps prevent overloading server)
+Crawl-delay: 1
