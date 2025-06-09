@@ -74,6 +74,7 @@ services:
     environment:
       - NODE_ENV=production
       - API_URL=${API_URL:-http://localhost:8000/api}
+      - GOOGLE_ANALYTICS_ID=${GOOGLE_ANALYTICS_ID:-G-D817VJ3RW5}
     depends_on:
       - api
     networks:

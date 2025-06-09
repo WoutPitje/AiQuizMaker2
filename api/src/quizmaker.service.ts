@@ -522,7 +522,7 @@ export class QuizmakerService {
       const magicLink = await this.saveQuiz(quiz);
 
       // Step 7: Clean up uploaded PDF file since we no longer need it
-      const shouldCleanup = process.env.CLEANUP_UPLOADED_FILES !== 'false';
+      const shouldCleanup = false;
       if (shouldCleanup) {
         try {
           await fs.unlink(filePath);
@@ -568,7 +568,7 @@ export class QuizmakerService {
       }
 
       // Clean up uploaded PDF file on failure
-      const shouldCleanup = process.env.CLEANUP_UPLOADED_FILES !== 'false';
+      const shouldCleanup = false;
       if (shouldCleanup) {
         try {
           await fs.unlink(filePath);

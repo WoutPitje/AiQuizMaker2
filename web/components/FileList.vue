@@ -117,14 +117,24 @@
         
         <!-- Actions -->
         <div class="flex items-center space-x-2">
-          <!-- Generate Live Quiz Button -->
+          <!-- Generate Live Quiz Button - only show if no quiz has been generated or if currently generating -->
           <button
+            v-if="!hasGeneratedQuiz"
             @click="generateQuizStream"
             :disabled="isGeneratingQuiz"
             class="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
            
             {{ isGeneratingQuiz ? 'Generating...' : 'Generate Quiz ⚡' }}
+          </button>
+          
+          <!-- Start New Quiz Button - only show after quiz generation is complete -->
+          <button
+            v-if="hasGeneratedQuiz && !isGeneratingQuiz"
+            @click="handleStartNewQuiz"
+            class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            🔄 Start New Quiz
           </button>
           
           <button
@@ -142,6 +152,23 @@
               />
             </svg>
           </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Success Message after Quiz Generation -->
+    <div v-if="hasGeneratedQuiz && !isGeneratingQuiz" class="mt-4 p-4 bg-green-50 border border-green-200 rounded-md">
+      <div class="flex items-center">
+        <svg class="h-5 w-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+        </svg>
+        <div>
+          <p class="text-sm font-medium text-green-800">
+            Quiz generated successfully!
+          </p>
+          <p class="text-xs text-green-600 mt-1">
+            Your interactive quiz is ready. Scroll down to view questions or use the "Start New Quiz" button to create another quiz with different options.
+          </p>
         </div>
       </div>
     </div>
@@ -174,7 +201,7 @@ import { ref } from 'vue'
 const fileUploadStore = useFileUploadStore()
 
 // Store state
-const { uploadedFile, hasUploadedFile, isGeneratingQuiz, supportedLanguages, selectedLanguage } = storeToRefs(fileUploadStore)
+const { uploadedFile, hasUploadedFile, isGeneratingQuiz, supportedLanguages, selectedLanguage, hasGeneratedQuiz } = storeToRefs(fileUploadStore)
 
 // Quiz generation options
 const questionsPerPage = ref<number>(2)
@@ -226,5 +253,10 @@ const generateQuizStream = async () => {
   console.log('🌐 Language:', selectedLanguage.value)
   
   await fileUploadStore.generateQuizStream(uploadedFile.value.filename, options)
+}
+
+const handleStartNewQuiz = () => {
+  // Call the store action to start a new quiz
+  fileUploadStore.startNewQuiz()
 }
 </script> 

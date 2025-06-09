@@ -61,7 +61,87 @@
       <!-- File Upload Section -->
       <div class="flex flex-col items-center space-y-8">
         <!-- File Dropbox -->
-        <FileDropbox />
+        <FileDropbox v-if="!hasUploadedFile" />
+        
+        <!-- File Uploaded - Pre-Generation Options -->
+        <div v-if="hasUploadedFile && !hasGeneratedQuiz && !isGeneratingQuiz" class="w-full max-w-2xl mx-auto">
+          <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+            <div class="text-center mb-6">
+              <div class="flex items-center justify-center mb-4">
+                <svg class="h-8 w-8 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <h3 class="text-lg font-semibold text-gray-900">
+                  📄 PDF Uploaded Successfully!
+                </h3>
+              </div>
+              <p class="text-gray-600 mb-4">
+                Your PDF is ready for quiz generation. Not the right file?
+              </p>
+              
+              <button
+                @click="handleUploadNewFile"
+                class="inline-flex items-center px-4 py-2 border border-orange-300 text-orange-700 bg-orange-50 text-sm font-medium rounded-md hover:bg-orange-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-colors"
+              >
+                📎 Upload Different File
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- New Quiz Options (shown after quiz generation is complete) -->
+        <div v-if="hasGeneratedQuiz && !isGeneratingQuiz" class="w-full max-w-2xl mx-auto">
+          <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+            <div class="text-center mb-6">
+              <h3 class="text-lg font-semibold text-gray-900 mb-2">
+                🎉 Quiz Generated Successfully!
+              </h3>
+              <p class="text-gray-600">
+                What would you like to do next?
+              </p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <!-- Upload New File Option -->
+              <div class="text-center p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors">
+                <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                </div>
+                <h4 class="text-sm font-medium text-gray-900 mb-2">Upload New PDF</h4>
+                <p class="text-xs text-gray-600 mb-3">
+                  Upload a different PDF file to create a new quiz
+                </p>
+                <button
+                  @click="handleUploadNewFile"
+                  class="w-full inline-flex items-center justify-center px-3 py-2 border border-blue-300 shadow-sm text-sm font-medium rounded-md text-blue-700 bg-white hover:bg-blue-50 transition-colors"
+                >
+                  📄 Choose New File
+                </button>
+              </div>
+              
+              <!-- Generate New Quiz with Same File -->
+              <div class="text-center p-4 border border-gray-200 rounded-lg hover:border-green-300 hover:bg-green-50 transition-colors">
+                <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                </div>
+                <h4 class="text-sm font-medium text-gray-900 mb-2">Same PDF, New Quiz</h4>
+                <p class="text-xs text-gray-600 mb-3">
+                  Generate another quiz with different options using the same PDF
+                </p>
+                <button
+                  @click="handleStartNewQuiz"
+                  class="w-full inline-flex items-center justify-center px-3 py-2 border border-green-300 shadow-sm text-sm font-medium rounded-md text-green-700 bg-white hover:bg-green-50 transition-colors"
+                >
+                  🔄 New Quiz Options
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
         
         <!-- Uploaded Files List -->
         <FileList />
@@ -242,9 +322,19 @@ useHead({
 
 // Initialize the store on page load
 const fileUploadStore = useFileUploadStore()
-const { quizError } = storeToRefs(fileUploadStore)
+const { quizError, hasGeneratedQuiz, isGeneratingQuiz, hasUploadedFile } = storeToRefs(fileUploadStore)
 
 const clearQuizError = () => {
   fileUploadStore.clearQuizError()
+}
+
+const handleUploadNewFile = () => {
+  // Clear everything and allow user to upload a new file
+  fileUploadStore.removeFile()
+}
+
+const handleStartNewQuiz = () => {
+  // Start a new quiz with the same file
+  fileUploadStore.startNewQuiz()
 }
 </script> 

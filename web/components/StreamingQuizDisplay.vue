@@ -35,7 +35,7 @@
         </div>
 
         <!-- Generation Stats -->
-        <div v-if="streamingStats" class="grid grid-cols-3 gap-6 text-center">
+        <div v-if="streamingStats" class="grid grid-cols-3 gap-6 text-center mb-6">
           <div class="bg-blue-50 rounded-lg p-4">
             <div class="text-2xl font-bold text-blue-600">{{ streamingStats.totalQuestions }}</div>
             <div class="text-sm text-blue-800 font-medium">Questions</div>
@@ -48,6 +48,22 @@
             <div class="text-2xl font-bold text-purple-600">{{ Math.ceil(streamingStats.totalQuestions * 1.5) }}</div>
             <div class="text-sm text-purple-800 font-medium">Est. Minutes</div>
           </div>
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="flex justify-center space-x-4">
+          <button
+            @click="scrollToTop"
+            class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+          >
+            ⬆️ Back to Top
+          </button>
+          <button
+            @click="handleStartOver"
+            class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            🔄 Create New Quiz
+          </button>
         </div>
       </div>
     </div>
@@ -171,6 +187,17 @@ watch(streamingQuestions, (newQuestions, oldQuestions) => {
     resetInteractionState()
   }
 }, { deep: true })
+
+// Utility functions
+const scrollToTop = () => {
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+const handleStartOver = () => {
+  // Go back to the file upload section and clear current quiz
+  fileUploadStore.startNewQuiz()
+  scrollToTop()
+}
 </script>
 
 <style scoped>

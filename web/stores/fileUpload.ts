@@ -29,6 +29,7 @@ export const useFileUploadStore = defineStore('fileUpload', () => {
 
   // Computed
   const hasUploadedFile = computed(() => !!uploadedFile.value)
+  const hasGeneratedQuiz = computed(() => !!currentQuiz.value)
 
   // Load supported languages on store initialization
   const loadSupportedLanguages = async () => {
@@ -341,6 +342,18 @@ export const useFileUploadStore = defineStore('fileUpload', () => {
     quizError.value = null
     currentMagicLink.value = null
     currentShareUrl.value = null
+    // Reset streaming state when clearing quiz
+    streamingQuestions.value = []
+    streamingStats.value = null
+    streamingProgress.value = ''
+    currentPage.value = 0
+    totalPages.value = 0
+  }
+
+  const startNewQuiz = () => {
+    // Clear the current quiz but keep the uploaded file
+    clearQuiz()
+    console.log('🔄 Starting new quiz - quiz data cleared, file retained')
   }
 
   // Initialize languages when store is created
@@ -353,6 +366,7 @@ export const useFileUploadStore = defineStore('fileUpload', () => {
     error: readonly(error),
     uploadedFile: readonly(uploadedFile),
     hasUploadedFile: readonly(hasUploadedFile),
+    hasGeneratedQuiz: readonly(hasGeneratedQuiz),
 
     // Quiz state
     isGeneratingQuiz: readonly(isGeneratingQuiz),
@@ -383,6 +397,7 @@ export const useFileUploadStore = defineStore('fileUpload', () => {
     removeFile,
     clearError,
     clearQuizError,
-    clearQuiz
+    clearQuiz,
+    startNewQuiz
   }
 }) 

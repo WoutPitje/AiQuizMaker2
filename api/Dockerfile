@@ -39,6 +39,7 @@ EXPOSE 3001
 # Set environment variables
 ENV NODE_ENV=production
 ENV PORT=3001
+ENV GOOGLE_ANALYTICS_ID=G-D817VJ3RW5
 
 # Start the application
 CMD ["npm", "run", "start:prod"] 
