@@ -22,7 +22,7 @@
               class="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-md text-sm bg-white font-mono"
             />
             <button
-              @click="copyToClipboard"
+              @click="copyShareUrl"
               :disabled="copyingLink"
               class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors disabled:opacity-50"
             >
@@ -90,93 +90,42 @@
       </div>
     </div>
 
+    <!-- Score Card -->
+    <QuizScoreCard
+      v-if="streamingQuestions.length > 0"
+      :total-answered="totalAnswered"
+      :total-correct="totalCorrect"
+      :score-percentage="scorePercentage"
+      :score-color="getScoreColor"
+      :total-questions="streamingQuestions.length"
+    />
+
     <!-- Questions Grid -->
     <div v-if="streamingQuestions.length > 0" class="space-y-6">
-      <div 
+      <QuizQuestion
         v-for="(question, index) in streamingQuestions" 
         :key="question.id"
-        class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden animate-fade-in"
-      >
-        <!-- Question Header -->
-        <div class="border-b border-gray-200 px-6 py-4">
-          <div class="flex items-center justify-between mb-3">
-            <span class="text-sm font-medium text-blue-600">Question {{ index + 1 }}</span>
-            <div class="flex items-center space-x-2">
-              <span v-if="question.pageNumber" class="text-xs text-gray-500">Page {{ question.pageNumber }}</span>
-              <span 
-                class="text-xs px-2 py-1 rounded-full"
-                :class="getDifficultyClass(question.difficulty)"
-              >
-                {{ question.difficulty }}
-              </span>
-            </div>
-          </div>
-
-          <!-- Question Text -->
-          <h3 class="text-lg font-medium text-gray-900">{{ question.question }}</h3>
-        </div>
-
-        <!-- Answer Options -->
-        <div class="px-6 py-4">
-          <div class="space-y-2 mb-4">
-            <div 
-              v-for="(option, optionKey) in question.options" 
-              :key="optionKey"
-              :class="getOptionClass(question, optionKey)"
-              class="p-3 rounded cursor-pointer transition-colors border"
-              @click="selectAnswer(question.id, optionKey)"
-            >
-              <div class="flex items-center justify-between">
-                <div>
-                  <span class="font-medium">{{ optionKey }}.</span> {{ option }}
-                </div>
-                <div v-if="showAnswers[question.id] && optionKey === question.correctAnswer" class="text-green-600">
-                  <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                  </svg>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Show/Hide Answer Button -->
-          <div class="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
-            <button
-              @click="toggleAnswer(question.id)"
-              class="text-blue-600 hover:text-blue-800 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 rounded px-2 py-1"
-            >
-              {{ showAnswers[question.id] ? 'Hide Answer' : 'Show Answer' }}
-            </button>
-            
-            <!-- Selected Answer Display -->
-            <div v-if="selectedAnswers[question.id]" class="text-sm text-gray-600">
-              Your answer: <span class="font-medium">{{ selectedAnswers[question.id] }}</span>
-            </div>
-          </div>
-
-          <!-- Answer Explanation -->
-          <div v-if="showAnswers[question.id] && question.explanation" class="mt-4 p-3 bg-green-50 rounded border border-green-200">
-            <div class="flex items-center mb-2">
-              <svg class="w-5 h-5 text-green-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-              </svg>
-              <span class="font-medium text-green-800">
-                Correct Answer: {{ question.correctAnswer }}
-              </span>
-            </div>
-            <h5 class="text-sm font-medium text-green-900 mb-2">Explanation:</h5>
-            <p class="text-sm text-green-700">{{ question.explanation }}</p>
-          </div>
-        </div>
-      </div>
+        :question="question"
+        :index="index"
+        container-class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden animate-fade-in"
+        :show-answers="showAnswers"
+        :selected-answers="selectedAnswers"
+        :select-answer="selectAnswer"
+        :toggle-answer="toggleAnswer"
+        :get-option-class="getOptionClass"
+        :get-difficulty-class="getDifficultyClass"
+      />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useFileUploadStore } from '~/stores/fileUpload'
+import { useQuizInteractions } from '~/composables/useQuizInteractions'
+import QuizQuestion from '~/components/QuizQuestion.vue'
+import QuizScoreCard from '~/components/QuizScoreCard.vue'
 
 const fileUploadStore = useFileUploadStore()
 const { 
@@ -190,85 +139,38 @@ const {
   currentShareUrl
 } = storeToRefs(fileUploadStore)
 
-// Local state for showing answers
-const showAnswers = ref<Record<string, boolean>>({})
-const selectedAnswers = ref<Record<string, string>>({})
-const copyingLink = ref(false)
+// Use shared quiz interactions composable
+const {
+  showAnswers,
+  selectedAnswers,
+  copyingLink,
+  answeredQuestions,
+  correctAnswers,
+  totalAnswered,
+  totalCorrect,
+  scorePercentage,
+  getScoreColor,
+  resetInteractionState,
+  toggleAnswer,
+  selectAnswer,
+  getOptionClass,
+  getDifficultyClass,
+  copyShareUrl
+} = useQuizInteractions()
 
 // Reset state when streaming starts
 watch(isStreamingQuiz, (isStreaming) => {
   if (isStreaming) {
-    showAnswers.value = {}
-    selectedAnswers.value = {}
+    resetInteractionState()
   }
 })
 
 // Reset state when questions change (new quiz)
 watch(streamingQuestions, (newQuestions, oldQuestions) => {
   if (newQuestions.length === 0 && oldQuestions && oldQuestions.length > 0) {
-    showAnswers.value = {}
-    selectedAnswers.value = {}
+    resetInteractionState()
   }
 }, { deep: true })
-
-const toggleAnswer = (questionId: string) => {
-  showAnswers.value[questionId] = !showAnswers.value[questionId]
-}
-
-const selectAnswer = (questionId: string, optionKey: string) => {
-  selectedAnswers.value[questionId] = optionKey
-  // Also show the answer when user selects
-  showAnswers.value[questionId] = true
-}
-
-const getOptionClass = (question: any, optionKey: string) => {
-  const isSelected = selectedAnswers.value[question.id] === optionKey
-  const isCorrect = optionKey === question.correctAnswer
-  const showingAnswers = showAnswers.value[question.id]
-  
-  if (showingAnswers && isCorrect) {
-    return 'bg-green-100 border-green-300 border-2'
-  } else if (showingAnswers && isSelected && !isCorrect) {
-    return 'bg-red-100 border-red-300 border-2'
-  } else if (isSelected) {
-    return 'bg-blue-100 border-blue-300 border-2'
-  }
-  return 'bg-gray-50 hover:bg-gray-100 border-gray-200'
-}
-
-const copyToClipboard = async () => {
-  if (copyingLink.value) return
-  
-  copyingLink.value = true
-  try {
-    const success = await fileUploadStore.copyMagicLink()
-    if (success) {
-      // Keep "Copied!" state for 2 seconds
-      setTimeout(() => {
-        copyingLink.value = false
-      }, 2000)
-      console.log('✅ Link copied to clipboard!')
-    } else {
-      copyingLink.value = false
-    }
-  } catch (error) {
-    console.error('Failed to copy link:', error)
-    copyingLink.value = false
-  }
-}
-
-const getDifficultyClass = (difficulty: string) => {
-  switch (difficulty) {
-    case 'easy':
-      return 'bg-green-100 text-green-800'
-    case 'medium':
-      return 'bg-yellow-100 text-yellow-800'
-    case 'hard':
-      return 'bg-red-100 text-red-800'
-    default:
-      return 'bg-gray-100 text-gray-800'
-  }
-}
 </script>
 
 <style scoped>

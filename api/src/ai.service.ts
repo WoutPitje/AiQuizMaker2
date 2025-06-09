@@ -141,52 +141,67 @@ export class AiService {
       language: options.language || 'en'
     })}`);
 
-    try {
-      const prompt = this.buildPrompt(pageContent, options);
-      
-      this.logger.debug(`🎯 Sending request to OpenAI API...`);
-      
-      const response = await this.openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
-        messages: [
-          {
-            role: 'system',
-            content: this.getSystemPrompt(options.language || 'en', options.includeExplanations)
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: 2000,
-      });
+    // Try up to 2 attempts
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        this.logger.debug(`🎯 Attempt ${attempt}/2: Sending request to OpenAI API...`);
+        
+        const prompt = this.buildPrompt(pageContent, options);
+        
+        const response = await this.openai.chat.completions.create({
+          model: 'gpt-3.5-turbo',
+          messages: [
+            {
+              role: 'system',
+              content: this.getSystemPrompt(options.language || 'en', options.includeExplanations)
+            },
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          temperature: 0.7,
+          max_tokens: 2000,
+        });
 
-      const duration = Date.now() - startTime;
-      const usage = response.usage;
-      
-      this.logger.log(`✅ OpenAI API response received in ${duration}ms`);
-      this.logger.log(`📊 Token usage: ${usage?.prompt_tokens} prompt + ${usage?.completion_tokens} completion = ${usage?.total_tokens} total`);
+        const duration = Date.now() - startTime;
+        const usage = response.usage;
+        
+        this.logger.log(`✅ OpenAI API response received in ${duration}ms (attempt ${attempt})`);
+        this.logger.log(`📊 Token usage: ${usage?.prompt_tokens} prompt + ${usage?.completion_tokens} completion = ${usage?.total_tokens} total`);
 
-      const responseContent = response.choices[0]?.message?.content;
-      if (!responseContent) {
-        throw new Error('Empty response from OpenAI');
+        const responseContent = response.choices[0]?.message?.content;
+        if (!responseContent) {
+          throw new Error('Empty response from OpenAI');
+        }
+
+        this.logger.debug(`🤖 AI Response length: ${responseContent.length} characters`);
+
+        const questions = this.parseAiResponse(responseContent, pageNumber, options.language || 'en');
+        
+        if (questions.length > 0) {
+          this.logger.log(`🎉 Successfully generated ${questions.length} questions for page ${pageNumber} on attempt ${attempt}`);
+          return questions;
+        } else {
+          throw new Error('No questions could be parsed from AI response');
+        }
+
+      } catch (error) {
+        this.logger.warn(`⚠️ Attempt ${attempt}/2 failed for page ${pageNumber}: ${error.message}`);
+        
+        // If this is the last attempt, throw the error
+        if (attempt === 2) {
+          this.logger.error(`❌ All attempts failed for page ${pageNumber}. Skipping question generation.`);
+          return []; // Return empty array instead of throwing
+        }
+        
+        // Wait a bit before retrying
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
-
-      this.logger.debug(`🤖 AI Response length: ${responseContent.length} characters`);
-
-      const questions = this.parseAiResponse(responseContent, pageNumber, options.language || 'en');
-      
-      this.logger.log(`🎉 Successfully generated ${questions.length} questions for page ${pageNumber}`);
-      
-      return questions;
-
-    } catch (error) {
-      this.logger.error(`❌ AI question generation failed for page ${pageNumber}:`, error.message);
-      
-      // Return fallback questions instead of throwing
-      return this.createFallbackQuestions(pageNumber, options.language || 'en');
     }
+
+    // This should never be reached, but just in case
+    return [];
   }
 
   private getSystemPrompt(language: string, includeExplanations: boolean): string {
@@ -302,53 +317,9 @@ ${instructions.explanations}
       this.logger.error(`Failed to parse AI response: ${error.message}`);
       this.logger.debug(`Raw response: ${response.substring(0, 500)}...`);
       
-      // Try to extract at least one question manually as fallback
-      return this.createFallbackQuestions(pageNumber, language);
+      // Return empty array instead of fallback questions
+      return [];
     }
   }
 
-  /**
-   * Create a fallback question when AI parsing fails
-   */
-  private createFallbackQuestions(pageNumber: number, language: string = 'en'): QuizQuestion[] {
-    const langConfig = LANGUAGE_CONFIGS[language] || LANGUAGE_CONFIGS['en'];
-    
-    const fallbackTexts = {
-      'en': {
-        question: `Based on the content from page ${pageNumber}, which statement is most accurate?`,
-        options: ['The content provides valuable information', 'The content is not relevant', 'The content is incomplete', 'The content needs revision'],
-        explanation: 'This is a fallback question generated when AI parsing failed.'
-      },
-      'es': {
-        question: `Basándose en el contenido de la página ${pageNumber}, ¿qué afirmación es más precisa?`,
-        options: ['El contenido proporciona información valiosa', 'El contenido no es relevante', 'El contenido está incompleto', 'El contenido necesita revisión'],
-        explanation: 'Esta es una pregunta de respaldo generada cuando falló el análisis de IA.'
-      },
-      'fr': {
-        question: `En se basant sur le contenu de la page ${pageNumber}, quelle affirmation est la plus précise?`,
-        options: ['Le contenu fournit des informations précieuses', 'Le contenu n\'est pas pertinent', 'Le contenu est incomplet', 'Le contenu a besoin de révision'],
-        explanation: 'Ceci est une question de secours générée lorsque l\'analyse IA a échoué.'
-      }
-    };
-
-    const texts = fallbackTexts[language] || fallbackTexts['en'];
-
-    this.logger.warn(`⚠️ Using fallback question for page ${pageNumber} in ${language}`);
-    
-    return [{
-      id: `fallback_q${pageNumber}_${Date.now()}`,
-      question: texts.question,
-      options: {
-        A: texts.options[0],
-        B: texts.options[1],
-        C: texts.options[2],
-        D: texts.options[3]
-      },
-      correctAnswer: "A",
-      difficulty: "medium",
-      explanation: texts.explanation,
-      pageNumber: pageNumber,
-      language: language
-    }];
-  }
 } 
