@@ -7,6 +7,7 @@ import * as path from 'path';
 import * as fs from 'fs/promises';
 import * as crypto from 'crypto';
 import { Observable, Subject } from 'rxjs';
+import { StorageService } from './storage.service';
 
 @Injectable()
 export class QuizmakerService {
@@ -15,13 +16,14 @@ export class QuizmakerService {
 
   constructor(
     private readonly fileServerService: FileServerService,
-    private readonly aiService: AiService
+    private readonly aiService: AiService,
+    private readonly storageService: StorageService
   ) {
     this.initializeStorage();
   }
 
   /**
-   * Initialize quiz storage directory
+   * Initialize quiz storage directory for local fallback
    */
   private async initializeStorage() {
     try {
@@ -43,62 +45,28 @@ export class QuizmakerService {
   }
 
   /**
-   * Save quiz to file storage
+   * Save quiz to storage service
    */
-  private async saveQuiz(quiz: Quiz): Promise<string> {
+  async saveQuiz(quiz: any): Promise<void> {
     try {
-      const magicLink = this.generateMagicLink();
-      const filename = `${magicLink}.json`;
-      const filePath = path.join(this.quizStorageDir, filename);
-
-      // Add magic link to quiz metadata
-      const quizWithMagicLink = {
-        ...quiz,
-        magicLink,
-        metadata: {
-          ...quiz.metadata,
-          magicLink,
-          savedAt: new Date()
-        }
-      };
-
-      await fs.writeFile(filePath, JSON.stringify(quizWithMagicLink, null, 2), 'utf8');
-      
-      this.logger.log(`💾 Quiz saved successfully with magic link: ${magicLink}`);
-      this.logger.log(`📂 Quiz file: ${filename}`);
-      
-      return magicLink;
+      await this.storageService.saveQuizData(quiz.id, quiz);
+      this.logger.log(`Quiz saved: ${quiz.id}`);
     } catch (error) {
-      this.logger.error(`❌ Failed to save quiz: ${error.message}`);
-      throw new Error(`Failed to save quiz: ${error.message}`);
+      this.logger.error(`Failed to save quiz ${quiz.id}:`, error);
+      throw error;
     }
   }
-
-
 
   /**
    * Get quiz by magic link
    */
-  async getQuizByMagicLink(magicLink: string): Promise<Quiz | null> {
+  async getQuizByMagicLink(magicLink: string): Promise<any> {
     try {
-      const filename = `${magicLink}.json`;
-      const filePath = path.join(this.quizStorageDir, filename);
-
-      this.logger.log(`🔍 Retrieving quiz with magic link: ${magicLink}`);
-
-      const quizData = await fs.readFile(filePath, 'utf8');
-      const quiz = JSON.parse(quizData);
-
-      this.logger.log(`✅ Quiz retrieved successfully: ${quiz.title}`);
+      const quiz = await this.storageService.loadQuizData(magicLink);
       return quiz;
-
     } catch (error) {
-      if (error.code === 'ENOENT') {
-        this.logger.warn(`❌ Quiz not found for magic link: ${magicLink}`);
-        return null;
-      }
-      this.logger.error(`❌ Failed to retrieve quiz: ${error.message}`);
-      throw new Error(`Failed to retrieve quiz: ${error.message}`);
+      this.logger.warn(`Quiz not found for magic link: ${magicLink}`);
+      return null;
     }
   }
 
@@ -114,18 +82,21 @@ export class QuizmakerService {
         return await this.getQuizByMagicLink(quizId);
       }
 
-      // Otherwise, search through stored quizzes
-      const files = await fs.readdir(this.quizStorageDir);
+      // Search through stored quizzes using storage service
+      const files = await this.storageService.listFiles('quiz-storage');
       
       for (const file of files) {
         if (file.endsWith('.json')) {
-          const filePath = path.join(this.quizStorageDir, file);
-          const quizData = await fs.readFile(filePath, 'utf8');
-          const quiz = JSON.parse(quizData);
-          
-          if (quiz.id === quizId) {
-            this.logger.log(`✅ Quiz found by ID: ${quiz.title}`);
-            return quiz;
+          try {
+            const quizId_from_file = file.replace('.json', '');
+            const quiz = await this.storageService.loadQuizData(quizId_from_file);
+            
+            if (quiz.id === quizId) {
+              this.logger.log(`✅ Quiz found by ID: ${quiz.title}`);
+              return quiz;
+            }
+          } catch (error) {
+            this.logger.warn(`Failed to load quiz file ${file}:`, error.message);
           }
         }
       }
@@ -142,42 +113,29 @@ export class QuizmakerService {
   /**
    * List all quizzes with pagination
    */
-  async listQuizzes(limit: number = 20, offset: number = 0): Promise<{ quizzes: Quiz[]; total: number }> {
+  async listQuizzes(): Promise<{ quizzes: any[], total: number }> {
     try {
-      this.logger.log(`📋 Listing quizzes (limit: ${limit}, offset: ${offset})`);
+      const files = await this.storageService.listFiles('quiz-storage');
+      const quizFiles = files.filter(f => f.endsWith('.json') && !f.startsWith('temp_'));
       
-      const files = await fs.readdir(this.quizStorageDir);
-      const quizFiles = files.filter(file => file.endsWith('.json'));
-      
-      // Sort by creation date (most recent first)
-      const quizzes: Quiz[] = [];
-      
-      for (const file of quizFiles) {
-        try {
-          const filePath = path.join(this.quizStorageDir, file);
-          const quizData = await fs.readFile(filePath, 'utf8');
-          const quiz = JSON.parse(quizData);
-          quizzes.push(quiz);
-        } catch (error) {
-          this.logger.warn(`⚠️ Failed to read quiz file ${file}: ${error.message}`);
-        }
-      }
+      const quizzes = await Promise.allSettled(
+        quizFiles.map(async (filename) => {
+          const quizId = filename.replace('.json', '');
+          return await this.storageService.loadQuizData(quizId);
+        })
+      );
 
-      // Sort by creation date
-      quizzes.sort((a, b) => new Date(b.metadata.createdAt).getTime() - new Date(a.metadata.createdAt).getTime());
-      
-      // Apply pagination
-      const paginatedQuizzes = quizzes.slice(offset, offset + limit);
-      
-      this.logger.log(`✅ Retrieved ${paginatedQuizzes.length} quizzes (total: ${quizzes.length})`);
-      
+      const validQuizzes = quizzes
+        .filter((result): result is PromiseFulfilledResult<any> => result.status === 'fulfilled')
+        .map(result => result.value)
+        .filter(quiz => quiz !== null);
+
       return {
-        quizzes: paginatedQuizzes,
-        total: quizzes.length
+        quizzes: validQuizzes,
+        total: validQuizzes.length
       };
-
     } catch (error) {
-      this.logger.error(`❌ Failed to list quizzes: ${error.message}`);
+      this.logger.error('Failed to list quizzes:', error);
       return { quizzes: [], total: 0 };
     }
   }
@@ -187,44 +145,35 @@ export class QuizmakerService {
    */
   async deleteQuizByMagicLink(magicLink: string): Promise<boolean> {
     try {
-      const filename = `${magicLink}.json`;
-      const filePath = path.join(this.quizStorageDir, filename);
-
-      await fs.unlink(filePath);
+      await this.storageService.deleteFile(`${magicLink}.json`, 'quiz-storage');
       this.logger.log(`🗑️ Quiz deleted successfully: ${magicLink}`);
       return true;
-
     } catch (error) {
-      if (error.code === 'ENOENT') {
-        this.logger.warn(`❌ Quiz not found for deletion: ${magicLink}`);
-        return false;
-      }
-      this.logger.error(`❌ Failed to delete quiz: ${error.message}`);
+      this.logger.warn(`❌ Failed to delete quiz: ${magicLink} - ${error.message}`);
       return false;
     }
   }
 
   /**
-   * Manual cleanup of old uploaded files (utility method)
+   * Cleanup old uploaded files - now works with storage service
    */
   async cleanupOldUploadedFiles(olderThanHours: number = 24): Promise<{ cleaned: number; errors: string[] }> {
-    const uploadsDir = './uploads';
     let cleaned = 0;
     const errors: string[] = [];
 
     try {
-      const files = await fs.readdir(uploadsDir);
+      const files = await this.storageService.listFiles('uploads');
       const cutoffTime = Date.now() - (olderThanHours * 60 * 60 * 1000);
 
       for (const file of files) {
         try {
-          const filePath = path.join(uploadsDir, file);
-          const stats = await fs.stat(filePath);
+          const metadata = await this.storageService.getFileMetadata(file, 'uploads');
+          const fileTime = new Date(metadata.created || metadata.timeCreated || 0).getTime();
           
-          if (stats.birthtimeMs < cutoffTime) {
-            await fs.unlink(filePath);
+          if (fileTime < cutoffTime) {
+            await this.storageService.deleteFile(file, 'uploads');
             cleaned++;
-            this.logger.log(`🗑️ Cleaned up old file: ${file} (${Math.round((Date.now() - stats.birthtimeMs) / (1000 * 60 * 60))}h old)`);
+            this.logger.log(`🗑️ Cleaned up old file: ${file} (${Math.round((Date.now() - fileTime) / (1000 * 60 * 60))}h old)`);
           }
         } catch (error) {
           const errorMsg = `Failed to process file ${file}: ${error.message}`;
@@ -237,86 +186,29 @@ export class QuizmakerService {
       return { cleaned, errors };
 
     } catch (error) {
-      const errorMsg = `Failed to read uploads directory: ${error.message}`;
+      const errorMsg = `Failed to list files for cleanup: ${error.message}`;
       errors.push(errorMsg);
       this.logger.error(`❌ ${errorMsg}`);
-      return { cleaned: 0, errors };
+      return { cleaned, errors };
     }
   }
 
   /**
-   * Utility methods
+   * Process PDF to quiz stream - now works with storage service
+   * @param filename - filename of the uploaded PDF in storage
+   * @param options - quiz generation options
    */
-  private generateQuizId(): string {
-    return `quiz_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  }
-
-  private getFileName(filePath: string): string {
-    return filePath.split('/').pop()?.replace('.pdf', '') || 'Unknown';
-  }
-
-  private generateQuizTitle(filename: string, language: string): string {
-    const baseName = filename.replace(/\.[^/.]+$/, ''); // Remove extension
-    
-    const titles = {
-      'en': `Quiz: ${baseName}`,
-      'es': `Cuestionario: ${baseName}`,
-      'fr': `Quiz: ${baseName}`,
-      'de': `Quiz: ${baseName}`,
-      'it': `Quiz: ${baseName}`,
-      'pt': `Questionário: ${baseName}`,
-      'ru': `Викторина: ${baseName}`,
-      'zh': `测验: ${baseName}`,
-      'ja': `クイズ: ${baseName}`,
-      'ko': `퀴즈: ${baseName}`,
-      'ar': `اختبار: ${baseName}`,
-      'hi': `प्रश्नोत्तरी: ${baseName}`,
-      'nl': `Quiz: ${baseName}`,
-      'sv': `Frågesport: ${baseName}`,
-      'da': `Quiz: ${baseName}`,
-      'no': `Quiz: ${baseName}`
-    };
-
-    return titles[language] || titles['en'];
-  }
-
-  private generateQuizDescription(totalPages: number, totalQuestions: number, language: string): string {
-    const descriptions = {
-      'en': `Generated from a ${totalPages}-page document with ${totalQuestions} questions covering key concepts and important information.`,
-      'es': `Generado a partir de un documento de ${totalPages} páginas con ${totalQuestions} preguntas que cubren conceptos clave e información importante.`,
-      'fr': `Généré à partir d'un document de ${totalPages} pages avec ${totalQuestions} questions couvrant les concepts clés et les informations importantes.`,
-      'de': `Erstellt aus einem ${totalPages}-seitigen Dokument mit ${totalQuestions} Fragen zu wichtigen Konzepten und Informationen.`,
-      'it': `Generato da un documento di ${totalPages} pagine con ${totalQuestions} domande sui concetti chiave e informazioni importanti.`,
-      'pt': `Gerado a partir de um documento de ${totalPages} páginas com ${totalQuestions} perguntas cobrindo conceitos-chave e informações importantes.`,
-      'ru': `Создано из документа на ${totalPages} страницах с ${totalQuestions} вопросами по ключевым концепциям и важной информации.`,
-      'zh': `从 ${totalPages} 页文档生成，包含 ${totalQuestions} 个涵盖关键概念和重要信息的问题。`,
-      'ja': `${totalPages}ページの文書から生成され、重要な概念と情報をカバーする${totalQuestions}の質問が含まれています。`,
-      'ko': `${totalPages}페이지 문서에서 생성되었으며, 핵심 개념과 중요한 정보를 다루는 ${totalQuestions}개의 질문이 포함되어 있습니다.`,
-      'ar': `تم إنشاؤه من وثيقة مكونة من ${totalPages} صفحة مع ${totalQuestions} سؤالاً يغطي المفاهيم الأساسية والمعلومات المهمة.`,
-      'hi': `${totalPages} पृष्ठों के दस्तावेज़ से उत्पन्न, जिसमें मुख्य अवधारणाओं और महत्वपूर्ण जानकारी को कवर करने वाले ${totalQuestions} प्रश्न हैं।`,
-      'nl': `Gegenereerd uit een document van ${totalPages} pagina's met ${totalQuestions} vragen die belangrijke concepten en informatie behandelen.`,
-      'sv': `Genererad från ett ${totalPages}-sidigt dokument med ${totalQuestions} frågor som täcker viktiga koncept och information.`,
-      'da': `Genereret fra et ${totalPages}-siders dokument med ${totalQuestions} spørgsmål, der dækker vigtige begreber og information.`,
-      'no': `Generert fra et ${totalPages}-siders dokument med ${totalQuestions} spørsmål som dekker viktige konsepter og informasjon.`
-    };
-
-    return descriptions[language] || descriptions['en'];
-  }
-
-  /**
-   * Stream quiz generation with real-time question updates
-   */
-  pdfToQuizStream(filePath: string, options: PdfToQuizOptions = {}): Observable<any> {
+  pdfToQuizStream(filename: string, options: PdfToQuizOptions = {}): Observable<any> {
     const subject = new Subject<any>();
     
     // Start the streaming generation process
-    this.generateQuizStreamingProcess(filePath, options, subject);
+    this.generateQuizStreamingProcess(filename, options, subject);
     
     return subject.asObservable();
   }
 
   private async generateQuizStreamingProcess(
-    filePath: string, 
+    filename: string, 
     options: PdfToQuizOptions, 
     subject: Subject<any>
   ) {
@@ -342,18 +234,30 @@ export class QuizmakerService {
         }
       });
 
-      this.logger.log(`🎯 Starting streaming PDF to quiz conversion for: ${filePath}`);
+      this.logger.log(`🎯 Starting streaming PDF to quiz conversion for: ${filename}`);
 
-      // Step 1: Create temporary storage file
-      tempFilePath = await this.createTempQuizFile(quizId);
+      // Step 1: Download file from storage and save to temp location for processing
+      subject.next({
+        type: 'progress',
+        data: { message: 'Downloading PDF file from storage...', stage: 'file-download' }
+      });
 
-      // Step 2: Process PDF file
+      const fileBuffer = await this.storageService.downloadFile(filename, 'uploads');
+      const tempFilePath = path.join('./uploads', `temp_${Date.now()}_${filename}`);
+      
+      // Create temp file for processing
+      await fs.writeFile(tempFilePath, fileBuffer);
+      
+      // Step 2: Create temporary quiz storage file
+      const tempQuizPath = await this.createTempQuizFile(quizId);
+
+      // Step 3: Process PDF file
       subject.next({
         type: 'progress',
         data: { message: 'Processing PDF file...', stage: 'pdf-processing' }
       });
 
-      const fileResult = await this.fileServerService.splitPdfToPages(filePath, defaultOptions.generateImages);
+      const fileResult = await this.fileServerService.splitPdfToPages(tempFilePath, defaultOptions.generateImages);
 
       if (!fileResult.pages || fileResult.pages.length === 0) {
         throw new Error('No readable content found in the PDF');
@@ -375,7 +279,7 @@ export class QuizmakerService {
 
       let totalQuestions = 0;
 
-      // Step 3: Generate questions for each page using AI
+      // Step 4: Generate questions for each page using AI
       for (let i = 0; i < pagesToProcess.length; i++) {
         const page = pagesToProcess[i];
         
@@ -411,8 +315,8 @@ export class QuizmakerService {
           );
 
           if (questions.length > 0) {
-            // Store questions incrementally to disk instead of memory
-            await this.appendQuestionsToTempFile(tempFilePath, questions);
+            // Store questions incrementally to storage
+            await this.appendQuestionsToTempFile(tempQuizPath, questions);
             totalQuestions += questions.length;
             
             // Emit each new question immediately
@@ -457,7 +361,7 @@ export class QuizmakerService {
         throw new Error('No questions could be generated from the PDF content');
       }
 
-      // Step 4: Generate AI-powered title and description
+      // Step 5: Generate AI-powered title and description
       subject.next({
         type: 'generating-metadata',
         data: { message: 'Generating AI-powered title and description...', totalQuestions }
@@ -474,7 +378,7 @@ export class QuizmakerService {
       const [aiTitle, aiDescription] = await Promise.all([
         this.aiService.generateQuizTitle(
           allDocumentContent,
-          path.basename(filePath),
+          filename,
           defaultOptions.language
         ),
         this.aiService.generateQuizDescription(
@@ -494,7 +398,7 @@ export class QuizmakerService {
         }
       });
 
-      // Step 5: Finalize quiz from temporary storage
+      // Step 6: Finalize quiz from temporary storage
       subject.next({
         type: 'finalizing',
         data: { message: 'Creating final quiz...', totalQuestions }
@@ -505,90 +409,67 @@ export class QuizmakerService {
         title: aiTitle,
         description: aiDescription,
         metadata: {
-          sourceFile: path.basename(filePath),
+          sourceFile: filename,
           totalPages: fileResult.totalPages,
-          createdAt: new Date(),
-          estimatedDuration: Math.ceil(totalQuestions * 1.5),
+          pagesProcessed: pagesToProcess.length,
+          totalQuestions,
+          generatedAt: new Date().toISOString(),
           language: defaultOptions.language,
-          questionsPerPage: defaultOptions.questionsPerPage,
-          difficulty: defaultOptions.difficulty
+          difficulty: defaultOptions.difficulty,
+          includeExplanations: defaultOptions.includeExplanations
         }
       };
 
-      const quiz = await this.finalizeTempQuiz(tempFilePath, finalQuizData);
-      tempFilePath = null; // Mark as cleaned up
+      // Create final quiz from temp file
+      const finalQuiz = await this.finalizeTempQuiz(tempQuizPath, finalQuizData);
 
-      // Step 6: Save quiz and generate magic link
-      const magicLink = await this.saveQuiz(quiz);
+      // Save final quiz
+      await this.saveQuiz(finalQuiz);
 
-      // Step 7: Clean up uploaded PDF file since we no longer need it
-      const shouldCleanup = false;
-      if (shouldCleanup) {
-        try {
-          await fs.unlink(filePath);
-          this.logger.log(`🗑️ Cleaned up uploaded PDF file: ${filePath}`);
-        } catch (cleanupError) {
-          // Don't fail the whole process if cleanup fails, just log it
-          this.logger.warn(`⚠️ Failed to clean up uploaded PDF file: ${cleanupError.message}`);
-        }
-      } else {
-        this.logger.log(`📁 Keeping uploaded PDF file for debugging: ${filePath}`);
+      // Clean up temp files
+      try {
+        await fs.unlink(tempFilePath);
+        await fs.unlink(tempQuizPath);
+      } catch (error) {
+        this.logger.warn(`Failed to cleanup temp files: ${error.message}`);
       }
 
-      // Emit completion
+      // Emit final completion
       subject.next({
         type: 'completed',
         data: {
-          quiz,
-          magicLink,
-          shareUrl: `${process.env.WEB_URL || 'http://localhost:3000'}/quiz/${magicLink}`,
+          quiz: finalQuiz,
+          quizId,
+          magicLink: quizId,
+          shareUrl: `${process.env.WEB_URL || 'http://localhost:3000'}/quiz/${quizId}`,
+          totalQuestions,
+          title: aiTitle,
           message: 'Quiz generation completed successfully!',
           stats: {
-            totalQuestions,
+            totalPages: fileResult.totalPages,
             pagesProcessed: pagesToProcess.length,
-            totalPages: fileResult.totalPages
+            totalQuestions,
+            generatedAt: new Date().toISOString()
           }
         }
       });
 
-      this.logger.log(`🎉 Streaming quiz generation completed successfully!`);
+      this.logger.log(`🎉 Quiz generation completed: ${quizId} with ${totalQuestions} questions`);
+      
       subject.complete();
 
     } catch (error) {
-      this.logger.error(`💥 Streaming quiz generation failed: ${error.message}`, error.stack);
+      this.logger.error(`❌ Quiz generation failed: ${error.message}`);
       
-      // Clean up temporary file if it exists
+      // Clean up temp files on error
       if (tempFilePath) {
         try {
           await fs.unlink(tempFilePath);
-          this.logger.log(`🗑️ Cleaned up temporary file after error: ${tempFilePath}`);
         } catch (cleanupError) {
-          this.logger.warn(`⚠️ Failed to clean up temporary file: ${cleanupError.message}`);
+          this.logger.warn(`Failed to cleanup temp file: ${cleanupError.message}`);
         }
       }
 
-      // Clean up uploaded PDF file on failure
-      const shouldCleanup = false;
-      if (shouldCleanup) {
-        try {
-          await fs.unlink(filePath);
-          this.logger.log(`🗑️ Cleaned up uploaded PDF file after error: ${filePath}`);
-        } catch (cleanupError) {
-          this.logger.warn(`⚠️ Failed to clean up uploaded PDF file: ${cleanupError.message}`);
-        }
-      } else {
-        this.logger.log(`📁 Keeping uploaded PDF file after error for debugging: ${filePath}`);
-      }
-      
-      subject.next({
-        type: 'error',
-        data: {
-          error: error.message,
-          message: 'Quiz generation failed',
-          quizId
-        }
-      });
-      
       subject.error(error);
     }
   }

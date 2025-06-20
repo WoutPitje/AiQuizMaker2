@@ -5,8 +5,8 @@ import { AppService } from './app.service';
 import { FileServerService } from './file-server.service';
 import { QuizmakerService } from './quizmaker.service';
 import { AiService } from './ai.service';
-import { AccessLogService } from './access-log.service';
-import { AccessLogMiddleware } from './access-log.middleware';
+import { GcsService } from './gcs.service';
+import { StorageService } from './storage.service';
 
 @Module({
   imports: [
@@ -15,12 +15,18 @@ import { AccessLogMiddleware } from './access-log.middleware';
     }),
   ],
   controllers: [AppController],
-  providers: [AppService, FileServerService, QuizmakerService, AiService, AccessLogService],
+  providers: [
+    AppService, 
+    FileServerService, 
+    QuizmakerService, 
+    AiService, 
+    GcsService,
+    StorageService
+  ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer
-      .apply(AccessLogMiddleware)
-      .forRoutes('*'); // Apply to all routes
+    // consumer
+    //   .forRoutes('*'); // Apply to all routes
   }
 }

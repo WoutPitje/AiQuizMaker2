@@ -2,7 +2,245 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Latest] - 2024-12-20
+
+### 🔧 Fixed Deploy Script Path Issues
+- **Fixed deploy.sh Directory Detection**: Resolved path issues when running deploy script from terraform directory
+  - **Auto-Detection Logic**: Added intelligent detection to determine if script runs from terraform or root directory
+  - **Dynamic Path Variables**: Introduced `PROJECT_ROOT` and `TERRAFORM_DIR` variables for flexible path handling
+  - **Multi-Location Support**: Script now works correctly from both `./deploy.sh` (in terraform) and `terraform/deploy.sh` (from root)
+  - **Path References Fixed**: Updated all `cd` commands to use dynamic path variables instead of hardcoded paths
+  - **Improved User Experience**: Users can now run deployment from their preferred directory without errors
+
+### 🚀 Hybrid Architecture Deployment Initiated
+- **Started Production Deployment**: Initiated deployment using the new cost-optimized hybrid architecture
+  - **Terraform Deployment**: Running terraform apply to create GCP infrastructure
+  - **API Service**: Deploying NestJS API to Cloud Run (~$5-20/month)
+  - **Static Frontend**: Deploying Nuxt static site to Cloud Storage (~$1.25/month)
+  - **Infrastructure Components**:
+    - GCP Project: aiquizmaker-1750103493
+    - Region: europe-west1
+    - Custom Domains: quizai.nl (frontend), api.quizai.nl (API)
+    - Storage Buckets: For file uploads and quiz storage
+    - Monitoring: Enabled with alerts to wout@pitdigital.nl
+  - **Cost Savings**: 85% reduction from previous architecture ($6-21/month vs $40+/month)
+
+### 🔧 Terraform Scripts Update for Hybrid Architecture
+- **Fixed terraform.tfvars for Hybrid Architecture**: Cleaned up configuration to match static hosting deployment
+  - **Removed Web Service Variables**: Eliminated obsolete `web_*` variables that were specific to Cloud Run deployment
+  - **Static Hosting Configuration**: Properly configured `enable_cdn` variable for static hosting module
+  - **Variable Consistency**: Ensured all variables in tfvars match those defined in variables.tf
+  - **Cost Optimization**: Updated configuration to support the new cost-optimized architecture
+  - **Documentation Updates**: Improved comments to reflect hybrid deployment approach
+
+### 🚀 Hybrid Deployment Architecture - Static Frontend + Cloud Run API
+- **Cost-Optimized Architecture**: Redesigned deployment to use static hosting for frontend and Cloud Run for API
+  - **Static Site Generation (SSG)**: Configured Nuxt for static site generation with `nitro: { preset: 'static' }`
+  - **Cloud Storage Hosting**: Frontend served from Google Cloud Storage for ~$1.25/month (vs $20+/month for Cloud Run)
+  - **Cloud Run API**: Backend API remains on Cloud Run for dynamic functionality (~$5-20/month)
+  - **Total Cost Reduction**: From $40+/month to $6-21/month (85% cost savings)
+
+### 🏗️ Infrastructure Refactoring
+- **Terraform Module Updates**:
+  - **Removed Web Service from Cloud Run**: Updated `cloud_run` module to only deploy API service
+  - **Added Static Hosting Module**: New `static_hosting` module for Cloud Storage bucket configuration
+  - **Optional CDN Support**: Added Cloud CDN configuration (disabled by default to save costs)
+  - **Simplified Variables**: Removed web-specific Cloud Run variables
+  
+- **Deployment Script Improvements**:
+  - **Unified Deploy Script**: Created single `deploy.sh` in root directory for hybrid deployment
+  - **Setup Script**: Created `setup.sh` in root for initial configuration
+  - **Static Site Build**: Integrated `npm run generate` for Nuxt static site generation
+  - **Automatic Upload**: Deploy script handles static file upload to Cloud Storage
+  - **Cache Headers**: Optimized cache headers for static assets (1 year) and HTML (1 hour)
+
+### 🌐 Static Hosting Features
+- **Cloud Storage Configuration**:
+  - **Website Hosting**: Configured with index.html and 404.html support
+  - **CORS Support**: Enabled CORS for API communication
+  - **Public Access**: Bucket configured for public website hosting
+  - **Lifecycle Rules**: 90-day cleanup for old file versions
+  
+- **Performance Optimizations**:
+  - **Instant Loading**: Pre-rendered HTML for immediate page loads
+  - **Global Distribution**: Content served from Google's edge locations
+  - **Aggressive Caching**: Static assets cached for 1 year with immutable headers
+  - **Compressed Transfer**: Automatic gzip compression for all text files
+
+### 🔧 Configuration Updates
+- **Nuxt Configuration**:
+  - **SSG Mode**: Added `nitro: { preset: 'static' }` for static generation
+  - **Build Scripts**: Updated package.json with proper SSG scripts
+  - **API URL**: Runtime configuration for API endpoint
+  
+- **Terraform Updates**:
+  - **Main Configuration**: Updated to use both cloud_run and static_hosting modules
+  - **Outputs**: Added static site URLs and bucket information
+  - **Cost Estimates**: Added monthly cost breakdown in outputs
+
+### 📊 Cost Analysis
+- **Previous Architecture** (Both services on Cloud Run):
+  - API: ~$20/month
+  - Frontend: ~$20/month
+  - Total: ~$40+/month
+  
+- **New Hybrid Architecture**:
+  - API (Cloud Run): ~$5-20/month
+  - Frontend (Static): ~$1.25/month
+  - Optional CDN: +$18/month
+  - Total: ~$6-21/month (without CDN)
+
+### 🚀 Deployment Benefits
+- **85% Cost Reduction**: Significant monthly savings on hosting costs
+- **Better Performance**: Static files load instantly without cold starts
+- **Improved Scalability**: Static hosting scales automatically without configuration
+- **Enhanced Security**: No server-side vulnerabilities for frontend
+- **Simplified Maintenance**: Less infrastructure to manage and monitor
+
 ## [Unreleased] - 2024-12-19
+
+### 🚀 Enhanced Deployment Script
+- **Simplified Docker Build Process**: Removed unnecessary API URL build arguments from web image build
+  - **Runtime Configuration**: API URL is now configured at runtime via Cloud Run environment variables instead of build time
+  - **Build Optimization**: Web service builds faster without needing API URL during Docker build process
+  - **Better Separation**: Clean separation between build-time and runtime configuration
+  - **Removed Complexity**: Eliminated complex API URL detection logic from deployment script
+  - **Enhanced Deploy Script**: Improved deploy.sh with better error handling, validation, health checks, and colored output
+
+### 🔧 Fixed Nuxt Runtime Configuration 
+- **Fixed API URL Environment Variables**: Resolved web app making requests to localhost instead of production API
+  - **Nuxt 3 Compatibility**: Added NUXT_PUBLIC_API_URL environment variable for proper client-side runtime config
+  - **Custom Domain Support**: Updated API URL to use https://api.quizai.nl custom domain
+  - **Backward Compatibility**: Maintained API_URL fallback for existing configurations
+  - **Proper CORS Configuration**: Enhanced API CORS to only allow specific domains (quizai.nl, localhost, *.run.app)
+- **Fixed WWW Subdomain Access**: Added domain mapping for www.quizai.nl to support both www and non-www access
+  - **Complete Domain Coverage**: Now supports both https://quizai.nl and https://www.quizai.nl
+  - **Automatic SSL**: Both domains get automatic SSL certificates from Cloud Run
+  - **Consistent Experience**: Users can access the site with or without www prefix
+- **Fixed Server-Sent Events (SSE) Streaming**: Resolved CORS and buffering issues with live quiz generation streaming
+  - **CORS Consistency**: Removed conflicting CORS headers from SSE endpoint to use main CORS middleware
+  - **Cloud Run Optimization**: Added proper headers for Cloud Run streaming (Transfer-Encoding: chunked, X-Accel-Buffering: no)
+  - **Connection Reliability**: Added initial connection event and better error handling for streaming
+  - **Enhanced Headers**: Added SSE-specific headers for proper streaming support across all origins
+
+### 🌐 Custom Domain Configuration
+- **Added Custom Domain Support**: Configured quizai.nl domain for production deployment
+  - **Web Frontend Domain**: Set domain_name = "quizai.nl" for the web application
+  - **API Backend Domain**: Set api_domain_name = "api.quizai.nl" for the API service
+  - **Terraform Domain Mapping**: Enabled google_cloud_run_domain_mapping resources for both services
+  - **DNS Configuration Required**: Domain will need DNS A/AAAA records pointing to Cloud Run services after deployment
+
+### 🔧 CORS and API URL Configuration Fixes
+- **Fixed CORS Issues for Cloud Run Deployment**: Resolved CORS errors between web and API services in Cloud Run
+  - **Dynamic CORS Configuration**: Updated API CORS to use regex pattern allowing all `*.run.app` domains
+  - **Cloud Run URL Support**: CORS now dynamically allows any Cloud Run service URL without hardcoding
+  - **Enhanced CORS Options**: Added OPTIONS method and additional headers for proper preflight handling
+  - **Better Error Logging**: Added CORS rejection logging for easier debugging
+  - **Environment Variable Support**: Added support for WEB_SERVICE_URL environment variable as fallback
+- **Fixed Cloud Run API URL Configuration**: Resolved web app calling `/api` instead of direct Cloud Run API service
+  - **Terraform Configuration**: Added api_url variable to main terraform configuration and passed it through to Cloud Run module
+  - **Web App Configuration**: Updated nuxt.config.ts to use direct API URLs without nginx proxy assumptions
+  - **Centralized Configuration**: API URL is now defined in terraform.tfvars instead of being constructed inline in build script
+  - **Better Maintainability**: API URL configuration is now version-controlled and documented in terraform variables  
+  - **Dynamic URL Setting**: Build script now computes and sets api_url variable in terraform.tfvars before building web image
+  - **Template Enhancement**: Updated terraform.tfvars.example to include api_url variable with proper documentation
+  - **Direct Service Communication**: Web service now calls API service directly using full Cloud Run URLs
+  - **Removed Nginx Dependencies**: Eliminated hardcoded `/api` paths that were meant for nginx proxy setups
+
+### 🐳 Docker Platform Architecture Fix
+- **Fixed Docker Build Platform Issue for Cloud Run**: Resolved container startup failures due to architecture mismatch
+  - **Platform-Specific Builds**: Updated build-and-deploy.sh to use `docker buildx build --platform linux/amd64` for Cloud Run compatibility
+  - **Combined Build and Push**: Optimized Docker workflow by combining build and push operations into single commands
+  - **ARM64 to AMD64 Compatibility**: Fixed issue where ARM64 images built on macOS were failing on Cloud Run's AMD64 infrastructure
+  - **Startup Probe Fixes**: Resolved "container failed the configured startup probe checks" errors by ensuring correct architecture
+  - **Build Script Enhancement**: Improved efficiency by eliminating separate build and push steps for both API and Web services
+
+### 🔧 Project ID Configuration Fix
+- **Fixed Missing Project ID in Terraform Configuration**: Resolved setup.sh script error where project_id was not found in terraform.tfvars
+  - **Unique Project ID Generation**: Generated unique project ID `aiquizmaker-1750103493` using timestamp for uniqueness
+  - **Container Image URLs Updated**: Updated api_image and web_image URLs to use the new project ID
+  - **Setup Script Compatibility**: Fixed terraform.tfvars to be compatible with setup.sh script expectations
+  - **Infrastructure Ready**: Terraform configuration now properly configured for deployment
+
+### 🚀 Terraform Project Creation Enhancement
+- **Automated Google Cloud Project Creation**: Enhanced Terraform infrastructure to automatically create new Google Cloud projects
+  - **Project Creation Module**: Updated project module to support creating new GCP projects using Terraform
+  - **Unique Project ID Generation**: Setup script now generates unique project IDs using timestamp to avoid conflicts
+  - **Create Project Variable**: Added `create_project` variable to toggle between creating new projects or using existing ones
+  - **Enhanced Setup Script**: Updated `setup.sh` to generate unique project IDs and streamline the setup process
+  - **Terraform Variables Update**: Added `create_project = true` as default to encourage Infrastructure as Code approach
+  - **Documentation Updates**: Updated README and terraform.tfvars.example to show new project creation workflow
+  - **Dependency Management**: Proper dependency chain ensures project is created before other resources
+- **Improved Developer Experience**: Simplified the entire deployment process for new users
+  - **One-Command Setup**: Running `./setup.sh` now handles project creation, authentication, and configuration
+  - **No Manual Project Creation**: Eliminates need to manually create projects in Google Cloud Console
+  - **Unique Naming**: Automatic project ID generation prevents naming conflicts
+  - **Error Prevention**: Avoids permission issues with existing projects by creating fresh ones
+  - **Infrastructure as Code**: Keeps entire infrastructure in Terraform for better version control and reproducibility
+
+### 🔧 Google Cloud Platform Deployment Fixes
+- **Authentication & Permission Resolution**: Successfully resolved 403 permission errors for Cloud Run deployment
+  - **Google Cloud SDK Setup**: Configured gcloud CLI authentication with Application Default Credentials
+  - **IAM Permissions**: Added required roles (Cloud Run Admin, Service Account User, Storage Admin, Secret Manager Admin)
+  - **Project Configuration**: Properly configured project ID and billing account for deployment
+  - **Authentication Flow**: Set up proper authentication chain for Terraform to access Google Cloud APIs
+- **Cloud Run Configuration Fixes**: Resolved deployment configuration issues
+  - **Reserved Environment Variables**: Fixed Cloud Run deployment by removing reserved `PORT` environment variable
+  - **Container Image Configuration**: Updated Docker image references to use correct project ID format
+  - **Service Account Permissions**: Verified service account has proper permissions for Cloud Run operations
+  - **API Enablement**: Ensured all required Google Cloud APIs are enabled for the project
+- **Terraform Infrastructure Validation**: Confirmed infrastructure plan shows 12 resources ready for deployment
+  - **Cloud Run Services**: API and Web services configured with proper scaling and health checks
+  - **Monitoring Setup**: Alert policies, dashboards, and notification channels ready for deployment
+  - **Storage Buckets**: Quiz storage and uploads buckets configured with proper IAM permissions
+  - **Secret Management**: OpenAI API key properly configured in Google Secret Manager
+
+### 🚀 Terraform Google Cloud Platform Deployment Infrastructure
+- **Complete Terraform Infrastructure Setup**: Created comprehensive infrastructure-as-code setup for deploying AiQuizMaker to Google Cloud Platform
+  - **Modular Architecture**: Well-organized Terraform modules following best practices
+    - **Project Module**: GCP project creation, API enablement, service accounts, and IAM setup
+    - **Cloud Run Module**: Containerized API and Web service deployment with auto-scaling
+    - **Storage Module**: Cloud Storage buckets for file uploads and quiz storage with lifecycle policies
+    - **Monitoring Module**: Comprehensive monitoring, alerting, and dashboard setup
+  - **Production-Ready Configuration**: Enterprise-grade infrastructure with security and cost optimization
+    - **Service Accounts**: Minimal permission service accounts following least privilege principle
+    - **Secret Management**: OpenAI API key stored securely in Google Secret Manager
+    - **Auto-scaling**: Scale to zero configuration for cost optimization
+    - **Health Checks**: Proper health check endpoints and probes for service reliability
+  - **Comprehensive Variables**: Configurable deployment with extensive variable options
+    - **Environment Support**: Dev, staging, and production environment configurations
+    - **Resource Allocation**: Configurable CPU, memory, and instance scaling parameters
+    - **Custom Domain Support**: Optional custom domain mapping for both API and web services
+    - **Monitoring Configuration**: Configurable alerting with email notifications
+- **Cloud Run Deployment Architecture**: Serverless container deployment optimized for modern web applications
+  - **API Service**: NestJS backend deployed as Cloud Run service with proper environment variables
+  - **Web Service**: Nuxt.js frontend deployed as Cloud Run service with API integration
+  - **Service Communication**: Proper service-to-service communication with environment variable configuration
+  - **Public Access**: IAM policies configured for public access with security considerations
+  - **Custom Health Checks**: Startup and liveness probes for service reliability
+- **Storage Infrastructure**: Robust file storage solution with Cloud Storage
+  - **Uploads Bucket**: User file uploads with versioning, lifecycle management, and CORS configuration
+  - **Quiz Storage Bucket**: Generated quiz storage with cost-optimized lifecycle policies
+  - **IAM Permissions**: Proper service account permissions for bucket access
+  - **Optional Features**: Pub/Sub notifications for file processing events
+- **Monitoring and Alerting**: Comprehensive observability setup
+  - **Alert Policies**: Service availability, error rate, latency, and application error monitoring
+  - **Custom Dashboard**: Real-time metrics dashboard with request counts, latency, and error rates
+  - **Email Notifications**: Configurable email alerts for critical issues
+  - **Log-based Metrics**: Application error tracking through structured logging
+- **Documentation and Guides**: Complete documentation for deployment and maintenance
+  - **README**: Comprehensive setup guide with prerequisites, quick start, and troubleshooting
+  - **Architecture Documentation**: Detailed technical documentation in `Documentation/Terraform-GCP-Deployment.md`
+  - **Example Configuration**: Complete `terraform.tfvars.example` with all configuration options
+  - **Cost Optimization Tips**: Best practices for cost-effective deployment
+- **Security and Best Practices**: Enterprise-grade security implementation
+  - **HTTPS-only Traffic**: All services configured for secure communication
+  - **Uniform Bucket Access**: Storage security with proper access controls
+  - **Secret Management**: No secrets in code, all sensitive data in Secret Manager
+  - **Resource Naming**: Consistent naming conventions across all resources
+  - **Environment Separation**: Support for multiple environments with workspace management
+
+## [Previous] - 2024-12-19
 
 ### 📱 Mobile Homepage & File Upload Enhancement
 - **Updated Mobile Homepage Design**: Redesigned homepage to match web version styling and layout
@@ -647,6 +885,13 @@ All notable changes to this project will be documented in this file.
   - Ensures share URL copying works in all deployment environments
 
 ### Added
+- **README Cleanup**: Standardized and improved all README files across the project
+  - Replaced Flutter boilerplate README with comprehensive mobile app documentation
+  - Updated main README with better cross-references and consistent formatting
+  - Added proper development status and feature tracking to mobile app README
+  - Improved API README with better Terraform references
+  - Standardized structure and styling across all component READMEs
+
 - **Production Environment Configuration**: Complete environment setup for Docker deployment
   - `.env.production` template optimized for Docker Compose with nginx reverse proxy
   - Updated local `.env` file with production URLs (port 8000 and /api prefix)
@@ -1121,3 +1366,154 @@ All notable changes to this project will be documented in this file.
 - Comprehensive error handling with user-friendly messages
 - Production-ready dependency configuration including dio, riverpod, file_picker
 - Complete documentation: architecture, development plan, API integration guide
+
+## [2025-06-17] - CORS Configuration Fix
+
+### Fixed
+- **CORS Issue Resolved**: Fixed missing `Access-Control-Allow-Origin` header issue by implementing explicit Express middleware in `api/src/main.ts`
+- Replaced complex NestJS CORS configuration with simple Express middleware that ensures headers are always present
+- Added logging to CORS middleware for better debugging
+- Now properly handles both preflight OPTIONS requests and regular API calls
+
+### Changed
+- Simplified CORS configuration in `api/src/main.ts` to use direct Express middleware instead of relying on NestJS `enableCors()`
+- API now explicitly sets `Access-Control-Allow-Origin: *` for all requests
+- OPTIONS requests now return status 200 instead of 204
+
+### Technical Details
+- API endpoint: `https://prod-aiquizmaker-api-kayhvw2ieq-ew.a.run.app`
+- Web endpoint: `https://prod-aiquizmaker-web-kayhvw2ieq-ew.a.run.app`
+- CORS now allows all origins (`*`) with methods `GET,POST,PUT,DELETE,OPTIONS`
+- Headers allowed: `Content-Type,Authorization,Cache-Control,X-Requested-With`
+
+### Deployment
+- Docker image rebuilt and pushed: `gcr.io/aiquizmaker-1750103493/aiquizmaker-api:latest`
+- Cloud Run services updated via Terraform
+- Successfully tested with curl for both OPTIONS and GET requests
+
+## [Latest] - 2024-01-XX
+
+### Added
+- 🚀 **Static Site Generation (SSG) Configuration**
+  - Configured Nuxt for static site generation
+  - Added deployment scripts for various hosting platforms
+  - Integrated sitemap and robots.txt generation
+  - Created SSG deployment documentation
+
+### Changed
+- 💰 **Hosting Strategy**: Moved from Cloud Run to static hosting for cost optimization
+- 📦 **Build Process**: Updated package.json with SSG-specific scripts
+- 🔧
+
+## [1.3.0] - 2024-01-09
+
+### Added
+- Complete Google Cloud Platform (GCP) deployment infrastructure using Terraform
+- Cost-optimized architecture with:
+  - Cloud Storage + CDN for static Nuxt SSG hosting
+  - Cloud Run for serverless API (scales to zero)
+  - Cloud Storage buckets for file uploads and quiz storage
+  - Global HTTPS Load Balancer with managed SSL certificates
+- Google Cloud Storage integration for API file handling
+- Storage abstraction layer supporting both local and cloud storage
+- Deployment scripts for easy API and web deployments
+- Comprehensive Terraform modules for:
+  - Storage (3 buckets: static site, uploads, quiz storage)
+  - Cloud Run service with auto-scaling
+  - Load balancer with URL mapping
+- GCP deployment documentation
+- Support for environment-based storage switching
+
+### Infrastructure Details
+- **Region**: europe-west4 (Netherlands) for .nl domain optimization
+- **Estimated Cost**: ~$20-25/month for low traffic
+- **Key Features**:
+  - Zero-cost when idle (Cloud Run scales to zero)
+  - Automatic SSL certificate management
+  - Global CDN for static assets
+  - Lifecycle policies for temporary file cleanup
+
+### Technical Changes
+- Added `@google-cloud/storage` dependency to API
+- Created `GcsService` for Google Cloud Storage operations
+- Created `StorageService` for storage abstraction
+- Updated API to support both local and cloud storage modes
+- Added deployment scripts: `deploy-api.sh` and `deploy-web.sh`
+
+### Documentation
+- Added comprehensive GCP deployment architecture documentation
+- Created Terraform README with deployment instructions
+- Updated infrastructure documentation with cloud deployment details
+
+## [Unreleased]
+
+### Changed
+- Removed load balancer infrastructure to reduce costs
+- Switched to Google Cloud Storage static website hosting for the frontend
+- Updated deployment process to use direct GCS bucket hosting
+- Added Cloudflare integration instructions for HTTPS support
+- Modified Terraform outputs to reflect new architecture without load balancer
+- Enhanced storage module with better static website configuration
+- Updated deployment script to use Cloud Run URL directly instead of proxied API
+- Updated deploy-api.sh to explicitly build for linux/amd64 architecture
+- Modified quick-deploy.sh to ensure x86_64 compatibility for Cloud Run
+- Updated project README to reflect new GCS static hosting architecture
+- Updated Terraform README for consistency with new architecture
+- Replaced default NestJS README with custom API documentation
+- Replaced default Nuxt README with custom frontend documentation
+
+### Added
+- Documentation for GCS static hosting setup (Documentation/static-hosting-gcs.md)
+- Default index.html placeholder in storage bucket
+- Website endpoint output in storage module
+- Support for both HTTP (direct) and HTTPS (via Cloudflare) access
+- Import script for existing resources (terraform/import-existing-resources.sh)
+- Documentation for handling Terraform resource conflicts (Documentation/terraform-resource-conflicts.md)
+- Test configuration for static hosting verification (terraform/test/static_hosting_test.tf)
+- Quick deployment script that handles correct order of operations (terraform/quick-deploy.sh)
+- Documentation for deployment order to avoid Docker image errors (Documentation/deployment-order.md)
+- Documentation for Docker architecture considerations (Documentation/docker-architecture.md)
+- Docker buildx support for multi-platform builds in deployment scripts
+- Simple build-and-push.sh script for API that handles buildx issues gracefully (api/build-and-push.sh)
+- Main project README with complete architecture overview
+- MIT License file
+
+### Technical Details
+- Cost savings: ~$20/month by removing load balancer
+- Static site served directly from GCS bucket
+- API remains on Cloud Run with auto-scaling
+- HTTPS achieved through Cloudflare proxy (free tier)
+
+## [2024-01-XX] - Previous Changes
+
+// ... existing code ...
+
+## [1.4.1] - 2024-01-XX
+
+### Fixed
+- **CRITICAL**: Fixed missing share buttons in frontend - completion event now includes quiz object and shareUrl
+- **CRITICAL**: Fixed bucket usage in production - application now properly uses GCS buckets instead of local storage
+- Updated AppController to use StorageService for file uploads and downloads
+- Fixed file storage abstraction to properly route to GCS buckets in production
+- Added storage configuration debugging to /config endpoint
+- Updated QuizmakerService to use proper storage service for quiz persistence
+- Fixed quiz completion event data structure for frontend compatibility
+
+### Added  
+- **NEW**: Local GCP development setup guide - use production buckets locally for testing
+- Enhanced storage type detection and configuration validation
+- Comprehensive local development documentation for GCS integration
+- Storage type indicator in API responses (GCS vs Local)
+- Enhanced error handling for storage operations
+- Better debugging tools for storage configuration
+
+### Documentation
+- Added `Documentation/local-gcp-setup.md` - Complete guide for using GCP buckets locally
+- Updated troubleshooting guides for authentication and permissions
+- Added best practices for development vs production storage
+- Monitoring and cost tracking documentation
+
+### Technical
+- Improved storage service abstraction layer
+- Better environment variable validation
+- Enhanced error messages for storage configuration issues

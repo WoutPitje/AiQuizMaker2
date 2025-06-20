@@ -99,11 +99,11 @@ export const useApi = () => {
   ) => {
     console.log('🌊 Starting streaming quiz generation for:', filename)
     console.log('🌐 Options:', options)
-    console.log('🔗 Full URL:', `${baseURL}/generate-quiz-stream/${filename}`)
+    console.log('🔗 Full URL:', `${baseURL}/quiz/generate-stream/${filename}`)
     
     try {
       console.log('📡 Making POST request to streaming endpoint...')
-      const response = await fetch(`${baseURL}/generate-quiz-stream/${filename}`, {
+      const response = await fetch(`${baseURL}/quiz/generate-stream/${filename}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -7,10 +7,14 @@
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "postinstall": "nuxt prepare"
+    "postinstall": "nuxt prepare",
+    "deploy:static": "nuxt generate && echo 'Static site ready in .output/public'"
   },
   "dependencies": {
     "@nuxt/eslint": "^1.4.1",
+    "@nuxt/image": "^1.8.1",
+    "@nuxtjs/robots": "^4.0.2",
+    "@nuxtjs/sitemap": "^6.0.1",
     "@nuxtjs/tailwindcss": "^7.0.0-beta.0",
     "@pinia/nuxt": "^0.11.1",
     "@types/uuid": "^10.0.0",

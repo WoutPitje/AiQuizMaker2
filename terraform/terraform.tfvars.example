@@ -1,0 +1,19 @@
+# Copy this file to terraform.tfvars and fill in your values
+
+# Required: Your GCP Project ID
+project_id = "your-gcp-project-id"
+
+# Required: Your OpenAI API key
+openai_api_key = "sk-your-openai-api-key"
+
+# Optional: Override default values
+# region                     = "europe-west4"  # Netherlands
+# domain_name                = "quizai.nl"
+# environment                = "prod"
+# cloud_run_min_instances    = 0
+# cloud_run_max_instances    = 10
+# cloud_run_cpu              = "1"
+# cloud_run_memory           = "512Mi"
+# max_pdf_size               = 104857600  # 100MB
+# max_pages_per_pdf          = 200
+# default_questions_per_page = 2 

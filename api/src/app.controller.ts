@@ -1,12 +1,11 @@
 import { Controller, Get, Post, UploadedFile, UseInterceptors, BadRequestException, Body, Param, Res, Sse, Req } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { ConfigService } from '@nestjs/config';
 import { AppService } from './app.service';
 import { QuizmakerService } from './quizmaker.service';
 import { AiService } from './ai.service';
-import { AccessLogService } from './access-log.service';
+import { StorageService } from './storage.service';
 import { PdfToQuizOptions } from './models/quiz.model';
 import { Response, Request } from 'express';
 import { Observable } from 'rxjs';
@@ -17,8 +16,8 @@ export class AppController {
     private readonly appService: AppService,
     private readonly quizmakerService: QuizmakerService,
     private readonly aiService: AiService,
-    private readonly accessLogService: AccessLogService,
-    private readonly configService: ConfigService
+    private readonly configService: ConfigService,
+    private readonly storageService: StorageService
   ) {}
 
   @Get()
@@ -28,18 +27,9 @@ export class AppController {
 
   @Post('upload')
   @UseInterceptors(FileInterceptor('file', {
-    storage: diskStorage({
-      destination: './uploads',
-      filename: (req, file, cb) => {
-        // Generate unique filename with timestamp
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        const ext = extname(file.originalname);
-        const filename = `${file.fieldname}-${uniqueSuffix}${ext}`;
-        cb(null, filename);
-      },
-    }),
+    // No diskStorage - handle files in memory for GCS upload
     limits: {
-      fileSize: parseInt(process.env.MAX_PDF_SIZE || '104857600'), // 100MB default (100 * 1024 * 1024)
+      fileSize: parseInt(process.env.MAX_PDF_SIZE || '104857600'), // 100MB default
     },
     fileFilter: (req, file, cb) => {
       // Only allow PDF files
@@ -50,7 +40,7 @@ export class AppController {
       }
     },
   }))
-  uploadFile(@UploadedFile() file: Express.Multer.File) {
+  async uploadFile(@UploadedFile() file: Express.Multer.File) {
     if (!file) {
       return {
         success: false,
@@ -68,27 +58,44 @@ export class AppController {
       };
     }
 
-    // Log file size for debugging
-    const maxSizeBytes = parseInt(process.env.MAX_PDF_SIZE || '104857600');
-    const maxSizeMB = Math.round(maxSizeBytes / (1024 * 1024));
-    
-    console.log(`📁 File uploaded: ${file.originalname}`);
-    console.log(`📊 File size: ${Math.round(file.size / (1024 * 1024))}MB / ${maxSizeMB}MB max`);
+    try {
+      // Generate unique filename with timestamp
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      const ext = extname(file.originalname);
+      const filename = `${file.fieldname}-${uniqueSuffix}${ext}`;
 
-    return {
-      success: true,
-      message: 'PDF file uploaded successfully',
-      file: {
-        filename: file.filename,
-        originalname: file.originalname,
-        mimetype: file.mimetype,
-        size: file.size,
-        path: file.path
-      }
-    };
+      // Upload to proper storage (GCS in production, local in development)
+      await this.storageService.uploadFile(filename, file.buffer, 'uploads');
+
+      // Log file size for debugging
+      const maxSizeBytes = parseInt(process.env.MAX_PDF_SIZE || '104857600');
+      const maxSizeMB = Math.round(maxSizeBytes / (1024 * 1024));
+      const storageType = await this.getStorageInfo();
+      
+      console.log(`📁 File uploaded: ${file.originalname} -> ${filename}`);
+      console.log(`📊 File size: ${Math.round(file.size / (1024 * 1024))}MB / ${maxSizeMB}MB max`);
+      console.log(`🗄️  Storage: ${storageType}`);
+
+      return {
+        success: true,
+        message: 'PDF file uploaded successfully',
+        file: {
+          filename: filename,
+          originalname: file.originalname,
+          mimetype: file.mimetype,
+          size: file.size
+        },
+        storage: storageType
+      };
+    } catch (error) {
+      console.error('Failed to upload file:', error);
+      return {
+        success: false,
+        message: 'Failed to upload file to storage',
+        error: error.message
+      };
+    }
   }
-
-
 
   @Get('languages')
   getSupportedLanguages() {
@@ -121,7 +128,13 @@ export class AppController {
         maxPdfSizeMB: maxSizeMB,
         maxPagesPerPdf: parseInt(process.env.MAX_PAGES_PER_PDF || '50'),
         defaultQuestionsPerPage: parseInt(process.env.DEFAULT_QUESTIONS_PER_PAGE || '2'),
-        supportedLanguages: this.aiService.getSupportedLanguages()
+        supportedLanguages: this.aiService.getSupportedLanguages(),
+        storage: {
+          gcsEnabled: !!(process.env.UPLOADS_BUCKET && process.env.QUIZ_STORAGE_BUCKET),
+          uploadsBucket: process.env.UPLOADS_BUCKET ? '✓ Configured' : '✗ Missing',
+          quizStorageBucket: process.env.QUIZ_STORAGE_BUCKET ? '✓ Configured' : '✗ Missing',
+          gcpProjectId: process.env.GCP_PROJECT_ID ? '✓ Configured' : '✗ Missing'
+        }
       }
     };
   }
@@ -198,58 +211,67 @@ export class AppController {
     }
   }
 
-  @Post('generate-quiz-stream/:filename')
-  generateQuizStream(
+  @Post('quiz/generate-stream/:filename')
+  async generateQuizStream(
     @Param('filename') filename: string,
     @Res() response: Response,
     @Body() options: PdfToQuizOptions = {}
   ) {
-    console.log('🌊 Streaming endpoint called!');
-    console.log('📁 Filename:', filename);
-    console.log('📋 Options:', options);
-    
-    const filePath = `./uploads/${filename}`;
-    
-    // Log the language selection
-    if (options?.language) {
-      console.log(`🌐 Streaming quiz generation in language: ${options.language}`);
-    }
-    
-    // Set SSE headers
-    response.setHeader('Content-Type', 'text/event-stream');
-    response.setHeader('Cache-Control', 'no-cache');
-    response.setHeader('Connection', 'keep-alive');
-    response.setHeader('Access-Control-Allow-Origin', '*');
-    response.setHeader('Access-Control-Allow-Headers', 'Cache-Control, Content-Type');
-    response.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    
-    // Start streaming
-    const subscription = this.quizmakerService.pdfToQuizStream(filePath, options).subscribe({
-      next: (data) => {
-        response.write(`data: ${JSON.stringify(data)}\n\n`);
-      },
-      error: (error) => {
-        response.write(`data: ${JSON.stringify({ type: 'error', data: { error: error.message } })}\n\n`);
+    try {
+      response.setHeader('Content-Type', 'text/event-stream');
+      response.setHeader('Cache-Control', 'no-cache');
+      response.setHeader('Connection', 'keep-alive');
+      response.setHeader('Access-Control-Allow-Origin', '*');
+      response.setHeader('Access-Control-Allow-Headers', 'Cache-Control');
+
+      // Check if file exists in storage
+      const fileExists = await this.storageService.fileExists(filename, 'uploads');
+      if (!fileExists) {
+        response.write(`data: ${JSON.stringify({ 
+          type: 'error', 
+          message: 'File not found', 
+          error: 'FILE_NOT_FOUND' 
+        })}\n\n`);
         response.end();
-      },
-      complete: () => {
-        response.end();
+        return;
       }
-    });
-    
-    // Handle client disconnect
-    response.on('close', () => {
-      subscription.unsubscribe();
-    });
-    
-    return response;
+
+      // Start quiz generation with filename (StorageService will handle the file access)
+      const quizStream = this.quizmakerService.pdfToQuizStream(filename, options);
+
+      quizStream.subscribe({
+        next: (data) => {
+          response.write(`data: ${JSON.stringify(data)}\n\n`);
+        },
+        error: (error) => {
+          console.error('Quiz generation error:', error);
+          response.write(`data: ${JSON.stringify({ 
+            type: 'error', 
+            message: 'Quiz generation failed', 
+            error: error.message 
+          })}\n\n`);
+          response.end();
+        },
+        complete: () => {
+          response.end();
+        }
+      });
+
+    } catch (error) {
+      console.error('Failed to start quiz generation:', error);
+      response.status(500).json({
+        success: false,
+        message: 'Failed to start quiz generation',
+        error: error.message
+      });
+    }
   }
 
   @Post('cleanup-files')
   async cleanupFiles(@Body() options?: { olderThanHours?: number }) {
     try {
-      const hours = options?.olderThanHours || 24;
-      const result = await this.quizmakerService.cleanupOldUploadedFiles(hours);
+      const olderThanHours = options?.olderThanHours || 24;
+      const result = await this.quizmakerService.cleanupOldUploadedFiles(olderThanHours);
       
       return {
         success: true,
@@ -266,76 +288,54 @@ export class AppController {
     }
   }
 
-  @Post('track-page-view')
-  async trackPageView(@Req() req: Request, @Body() body: {
-    url: string;
-    referer?: string;
-    sessionId?: string;
-    userId?: string;
-  }) {
-    try {
-      const ip = this.getClientIP(req);
-      
-      await this.accessLogService.logPageView({
-        ip,
-        userAgent: req.get('User-Agent') || 'Unknown',
-        url: body.url,
-        referer: body.referer || req.get('Referer'),
-        sessionId: body.sessionId,
-        userId: body.userId,
-      });
-
-      return {
-        success: true,
-        message: 'Page view tracked successfully'
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: 'Failed to track page view',
-        error: error.message
-      };
-    }
-  }
-
   @Get('files')
   async listUploadedFiles() {
     try {
-      const fs = require('fs');
-      const path = require('path');
-      const uploadsDir = './uploads';
+      const files = await this.storageService.listFiles('uploads');
+      const storageType = await this.getStorageInfo();
       
-      if (!fs.existsSync(uploadsDir)) {
-        return {
-          success: true,
-          files: [],
-          total: 0
-        };
-      }
+      const fileDetails = await Promise.all(
+        files.map(async (filename) => {
+          try {
+            const metadata = await this.storageService.getFileMetadata(filename, 'uploads');
+            return {
+              filename,
+              originalName: this.extractOriginalName(filename),
+              size: this.getMetadataSize(metadata),
+              sizeFormatted: this.formatFileSize(this.getMetadataSize(metadata)),
+              created: this.getMetadataDate(metadata, 'created'),
+              modified: this.getMetadataDate(metadata, 'updated'),
+              downloadUrl: `/files/${filename}`
+            };
+          } catch (error) {
+            console.warn(`Could not get metadata for ${filename}:`, error.message);
+            return {
+              filename,
+              originalName: this.extractOriginalName(filename),
+              size: 0,
+              sizeFormatted: '0 B',
+              created: new Date(),
+              modified: new Date(),
+              downloadUrl: `/files/${filename}`
+            };
+          }
+        })
+      );
 
-      const files = fs.readdirSync(uploadsDir).map(filename => {
-        const filePath = path.join(uploadsDir, filename);
-        const stats = fs.statSync(filePath);
-        
-        return {
-          filename,
-          originalName: filename.includes('-') ? filename.split('-').slice(2).join('-') : filename,
-          size: stats.size,
-          sizeFormatted: this.formatFileSize(stats.size),
-          created: stats.birthtime,
-          modified: stats.mtime,
-          downloadUrl: `/files/${filename}`
-        };
-      }).sort((a, b) => b.created.getTime() - a.created.getTime());
+      const sortedFiles = fileDetails.sort((a, b) => 
+        new Date(b.created).getTime() - new Date(a.created).getTime()
+      );
 
       return {
         success: true,
-        files,
-        total: files.length,
-        totalSize: files.reduce((sum, file) => sum + file.size, 0),
-        totalSizeFormatted: this.formatFileSize(files.reduce((sum, file) => sum + file.size, 0))
+        files: sortedFiles,
+        total: sortedFiles.length,
+        totalSize: sortedFiles.reduce((sum, file) => sum + file.size, 0),
+        totalSizeFormatted: this.formatFileSize(sortedFiles.reduce((sum, file) => sum + file.size, 0)),
+        storage: storageType
       };
     } catch (error) {
+      console.error('Failed to list files:', error);
       return {
         success: false,
         message: 'Failed to list files',
@@ -347,29 +347,20 @@ export class AppController {
   @Get('files/:filename')
   async downloadFile(@Param('filename') filename: string, @Res() res: Response) {
     try {
-      const path = require('path');
-      const fs = require('fs');
-      const filePath = path.join('./uploads', filename);
+      const buffer = await this.storageService.downloadFile(filename, 'uploads');
       
-      if (!fs.existsSync(filePath)) {
-        return res.status(404).json({
-          success: false,
-          message: 'File not found'
-        });
-      }
-
-      const stats = fs.statSync(filePath);
+      res.set({
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="${filename}"`,
+        'Content-Length': buffer.length.toString(),
+      });
       
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-      res.setHeader('Content-Length', stats.size);
-      
-      const fileStream = fs.createReadStream(filePath);
-      fileStream.pipe(res);
+      res.send(buffer);
     } catch (error) {
-      res.status(500).json({
+      console.error(`Failed to download file ${filename}:`, error);
+      res.status(404).json({
         success: false,
-        message: 'Failed to download file',
+        message: 'File not found',
         error: error.message
       });
     }
@@ -378,29 +369,28 @@ export class AppController {
   @Get('files/:filename/info')
   async getFileInfo(@Param('filename') filename: string) {
     try {
-      const path = require('path');
-      const fs = require('fs');
-      const filePath = path.join('./uploads', filename);
+      const exists = await this.storageService.fileExists(filename, 'uploads');
       
-      if (!fs.existsSync(filePath)) {
+      if (!exists) {
         return {
           success: false,
           message: 'File not found'
         };
       }
 
-      const stats = fs.statSync(filePath);
+      const metadata = await this.storageService.getFileMetadata(filename, 'uploads');
+      const storageType = await this.getStorageInfo();
       
       return {
         success: true,
         file: {
           filename,
-          size: stats.size,
-          sizeFormatted: this.formatFileSize(stats.size),
-          created: stats.birthtime,
-          modified: stats.mtime,
-          path: filePath
-        }
+          size: this.getMetadataSize(metadata),
+          sizeFormatted: this.formatFileSize(this.getMetadataSize(metadata)),
+          created: this.getMetadataDate(metadata, 'created'),
+          modified: this.getMetadataDate(metadata, 'updated')
+        },
+        storage: storageType
       };
     } catch (error) {
       return {
@@ -412,25 +402,44 @@ export class AppController {
   }
 
   private formatFileSize(bytes: number): string {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0) return '0 B';
     const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const sizes = ['B', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
 
   private getClientIP(req: Request): string {
-    // Check various headers for the real IP (in order of preference)
-    const forwarded = req.get('X-Forwarded-For');
-    if (forwarded) {
-      return forwarded.split(',')[0].trim();
-    }
-    
-    return req.get('X-Real-IP') || 
-           req.get('CF-Connecting-IP') || // Cloudflare
-           req.connection.remoteAddress ||
-           req.socket.remoteAddress ||
-           (req.connection as any)?.socket?.remoteAddress ||
+    return req.headers['x-forwarded-for'] as string || 
+           req.headers['x-real-ip'] as string || 
+           req.connection?.remoteAddress || 
+           req.socket?.remoteAddress || 
            'unknown';
+  }
+
+  private async getStorageInfo(): Promise<string> {
+    const gcsEnabled = process.env.UPLOADS_BUCKET && process.env.QUIZ_STORAGE_BUCKET;
+    return gcsEnabled ? 'Google Cloud Storage' : 'Local Storage';
+  }
+
+  private extractOriginalName(filename: string): string {
+    // Extract original name from generated filename (format: file-timestamp-random.ext)
+    if (filename.includes('-') && filename.split('-').length >= 3) {
+      const parts = filename.split('-');
+      return parts.slice(2).join('-'); // Remove "file" and timestamp parts
+    }
+    return filename;
+  }
+
+  private getMetadataSize(metadata: any): number {
+    return metadata.size || metadata.contentLength || 0;
+  }
+
+  private getMetadataDate(metadata: any, type: 'created' | 'updated'): Date {
+    if (type === 'created') {
+      return new Date(metadata.created || metadata.timeCreated || metadata.birthtime || Date.now());
+    } else {
+      return new Date(metadata.updated || metadata.timeUpdated || metadata.mtime || Date.now());
+    }
   }
 }

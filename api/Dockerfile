@@ -33,12 +33,11 @@ RUN npm prune --production
 # Create directories for file storage
 RUN mkdir -p uploads quiz-storage
 
-# Expose port
-EXPOSE 3001
+# Expose port (Cloud Run will set PORT env var)
+EXPOSE 8080
 
 # Set environment variables
 ENV NODE_ENV=production
-ENV PORT=3001
 ENV GOOGLE_ANALYTICS_ID=G-D817VJ3RW5
 
 # Start the application

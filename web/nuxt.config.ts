@@ -2,10 +2,21 @@
 export default defineNuxtConfig({
   compatibilityDate: '2025-05-15',
   devtools: { enabled: true },
+  
+  // Enable SSG mode
+  nitro: {
+    preset: 'static'
+  },
+  
+  // Pre-render routes for SSG
+  ssr: true,
+  
   modules: [
     '@nuxt/eslint', 
     '@nuxtjs/tailwindcss', 
-    '@pinia/nuxt'
+    '@pinia/nuxt',
+    '@nuxtjs/sitemap', // Already in devDeps, move to deps
+    '@nuxtjs/robots'   // Already in devDeps, move to deps
   ],
   
   // Development server configuration
@@ -69,10 +80,11 @@ export default defineNuxtConfig({
   
   runtimeConfig: {
     public: {
-      apiUrl: process.env.API_URL || 'http://localhost:8000/api', // Production API URL with nginx proxy
-      apiBase: process.env.API_URL || 'http://localhost:8000/api', // For tracking API calls
+      apiUrl: process.env.NUXT_PUBLIC_API_URL || process.env.API_URL || 'https://your-api-domain.com',
+      apiBase: process.env.NUXT_PUBLIC_API_URL || process.env.API_URL || 'https://your-api-domain.com',
       siteUrl: process.env.SITE_URL || 'https://quizai.nl',
       googleAnalyticsId: process.env.GOOGLE_ANALYTICS_ID || 'G-XXXXXXXXXX'
     }
-  }
+  },
+  
 })

@@ -23,13 +23,18 @@ export interface Quiz {
   metadata: {
     sourceFile: string;
     totalPages: number;
-    createdAt: Date;
-    estimatedDuration: number; // in minutes
+    createdAt?: Date;
+    generatedAt?: string; // ISO string for when quiz was generated
+    estimatedDuration?: number; // in minutes
     language?: string; // Quiz language
     questionsPerPage?: number;
     difficulty?: string;
+    includeExplanations?: boolean;
     magicLink?: string; // Also store in metadata for backwards compatibility
     savedAt?: Date; // When the quiz was saved to storage
+    pagesProcessed?: number; // Number of pages actually processed
+    totalQuestions?: number; // Total number of questions generated
+    [key: string]: any; // Allow additional metadata fields
   };
 }
 
