@@ -1,4 +1,6 @@
-# GCP Deployment Troubleshooting
+# GCP Troubleshooting Guide
+
+This guide covers common issues and solutions when deploying AI Quiz Maker to Google Cloud Platform.
 
 ## Common Issues and Solutions
 

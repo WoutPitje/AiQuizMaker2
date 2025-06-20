@@ -85,28 +85,21 @@ terraform init
 terraform apply
 ```
 
-### 4. Build and Deploy
+### 4. Deploy Application
 
-Use the quick deploy script:
-```bash
-chmod +x quick-deploy.sh
-./quick-deploy.sh your-project-id
-```
-
-Or deploy manually:
 ```bash
 # Deploy API
-cd api
-./build-and-push.sh your-project-id
-cd ../terraform
-terraform apply
+export GCP_PROJECT_ID=your-project-id  
+./deploy-api.sh
 
-# Deploy Frontend
-cd ../web
-export CLOUD_RUN_URL=<your-api-url>
-export GCP_PROJECT_ID=<your-project-id>
+# Deploy Frontend  
+export CLOUD_RUN_URL=<your-api-url-from-deploy-api>
+export GCP_PROJECT_ID=your-project-id
+export DOMAIN_NAME=yourdomain.com  # optional
 ./deploy-web.sh
 ```
+
+📋 **See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed deployment guide**
 
 ### 5. Configure Domain
 
@@ -151,10 +144,8 @@ Create `.env` files in both `api/` and `web/` directories. See `.env.example` fo
 
 ## 🔧 Key Scripts
 
-- `deploy-api.sh` - Deploy API to Cloud Run
-- `deploy-web.sh` - Deploy frontend to GCS
-- `terraform/quick-deploy.sh` - Complete deployment script
-- `api/build-and-push.sh` - Build and push Docker image
+- `deploy-api.sh` - Complete API deployment (build, push, deploy to Cloud Run)
+- `deploy-web.sh` - Complete frontend deployment (build, deploy to GCS)
 
 ## 📚 Documentation
 
@@ -164,9 +155,9 @@ Create `.env` files in both `api/` and `web/` directories. See `.env.example` fo
 - [Mobile App Documentation](mobile_app/README.md) - Flutter mobile app development
 - [Infrastructure Documentation](terraform/README.md) - Terraform setup and deployment
 
-### Detailed Guides
+### Deployment & Setup
+- [Quick Deployment Guide](DEPLOYMENT.md) - Step-by-step deployment with the two main scripts
 - [Static Hosting Setup](Documentation/static-hosting-gcs.md)
-- [Docker Architecture](Documentation/docker-architecture.md)
 - [Deployment Order](Documentation/deployment-order.md)
 - [GCP Deployment Guide](Documentation/gcp-deployment-architecture.md)
 

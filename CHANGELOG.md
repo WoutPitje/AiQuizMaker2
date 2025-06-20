@@ -4,6 +4,33 @@ All notable changes to this project will be documented in this file.
 
 ## [Latest] - 2024-12-20
 
+### 📚 Documentation Cleanup and Consolidation
+- **Comprehensive Documentation Restructure**: Cleaned up and consolidated overlapping documentation files
+  - **Removed Duplicate Content**: Eliminated 9 redundant files that covered similar deployment topics
+  - **Consolidated GCP Deployment**: Merged 6 GCP-related files into 2 comprehensive guides
+    - Created `gcp-deployment-guide.md` - Complete deployment process
+    - Kept `gcp-deployment-troubleshooting.md` - Troubleshooting reference
+  - **Consolidated Docker Deployment**: Merged 3 Docker files into 1 comprehensive guide
+    - Created `docker-deployment-guide.md` - Complete Docker setup for dev and production
+    - Includes Portainer setup, architecture requirements, and troubleshooting
+  - **Consolidated Infrastructure Documentation**: Merged 4 Terraform files into 2 focused guides
+    - Created `infrastructure-guide.md` - Complete Terraform infrastructure management
+    - Renamed to `terraform-troubleshooting.md` - Common issues and solutions
+  - **Archived Outdated Content**: Moved Flutter documentation to `archive/` folder
+    - 3 Flutter development files moved to `Documentation/archive/`
+    - Content marked as experimental/outdated for future reference
+  - **Created Documentation Index**: Added comprehensive `Documentation/README.md`
+    - Organized documentation into logical categories
+    - Quick start guide and navigation
+    - Clear structure for new users and developers
+  - **Improved Cross-References**: All guides now properly link to related documentation
+- **Documentation Statistics**: Reduced from 39 files to 30 active files (23% reduction in file count)
+  - Maintained 100% of essential information while eliminating redundancy
+  - Improved navigation and discoverability
+  - Better organization for different user types (developers, DevOps engineers, end users)
+
+## [Previous] - 2024-12-20
+
 ### 🔧 Fixed Deploy Script Path Issues
 - **Fixed deploy.sh Directory Detection**: Resolved path issues when running deploy script from terraform directory
   - **Auto-Detection Logic**: Added intelligent detection to determine if script runs from terraform or root directory
@@ -885,6 +912,14 @@ All notable changes to this project will be documented in this file.
   - Ensures share URL copying works in all deployment environments
 
 ### Added
+- **Script Cleanup**: Streamlined deployment process to use only two main scripts
+  - Removed redundant `api/build-and-push.sh` - functionality integrated into `deploy-api.sh`
+  - Removed Docker-specific files (nginx.conf, ssl-nginx.conf, .env.production)
+  - Removed duplicate environment file (env.example, kept .env.example)
+  - Created clean deployment guide (DEPLOYMENT.md) focusing on the two main scripts
+  - Updated all documentation to reference the streamlined deployment process
+  - Simplified README deployment instructions with reference to detailed guide
+
 - **README Cleanup**: Standardized and improved all README files across the project
   - Replaced Flutter boilerplate README with comprehensive mobile app documentation
   - Updated main README with better cross-references and consistent formatting

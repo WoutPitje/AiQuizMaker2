@@ -28,13 +28,11 @@ api/
 ├── src/
 │   ├── app.module.ts          # Main application module
 │   ├── main.ts                # Application entry point
-│   ├── config/                # Configuration management
-│   ├── pdf/                   # PDF processing module
-│   ├── quiz/                  # Quiz generation module
-│   └── storage/               # Cloud storage integration
+│   ├── models/                # Data models
+│   ├── *.service.ts           # Business logic services
+│   └── *.controller.ts        # API controllers
 ├── test/                      # Test files
 ├── Dockerfile                 # Container configuration
-├── build-and-push.sh         # Build script for Cloud Run
 └── package.json              # Dependencies
 ```
 
@@ -90,18 +88,20 @@ npm run test:cov
 
 ### Deploy to Cloud Run
 
-1. **Build and push Docker image**:
-   ```bash
-   ./build-and-push.sh your-project-id
-   ```
+Use the main deployment script from the project root:
 
-2. **Deploy using gcloud**:
-   ```bash
-   gcloud run deploy aiquizmaker-api \
-     --image europe-west4-docker.pkg.dev/your-project-id/aiquizmaker-docker/api:latest \
-     --region europe-west4 \
-     --allow-unauthenticated
-   ```
+```bash
+# From project root
+export GCP_PROJECT_ID=your-project-id
+export GCP_REGION=europe-west4  # optional
+./deploy-api.sh
+```
+
+This script handles:
+- Docker image building for correct platform (linux/amd64)
+- Authentication configuration
+- Image push to Artifact Registry
+- Cloud Run service deployment
 
 ### Using Terraform
 
