@@ -222,6 +222,7 @@ export class QuizmakerService {
 
     const quizId = `quiz_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     let tempFilePath: string | null = null;
+    let heartbeatInterval: NodeJS.Timeout | null = null;
 
     try {
       // Emit start event
@@ -278,6 +279,17 @@ export class QuizmakerService {
       this.logger.log(`📄 PDF processing completed: ${fileResult.pages.length} pages extracted`);
 
       let totalQuestions = 0;
+      
+      // Send periodic heartbeat to keep connection alive
+      heartbeatInterval = setInterval(() => {
+        subject.next({
+          type: 'heartbeat',
+          data: { 
+            message: 'Connection active',
+            timestamp: new Date().toISOString()
+          }
+        });
+      }, 30000); // Send heartbeat every 30 seconds
 
       // Step 4: Generate questions for each page using AI
       for (let i = 0; i < pagesToProcess.length; i++) {
@@ -426,6 +438,11 @@ export class QuizmakerService {
       // Save final quiz
       await this.saveQuiz(finalQuiz);
 
+      // Clean up heartbeat interval
+      if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+      }
+      
       // Clean up temp files
       try {
         await fs.unlink(tempFilePath);
@@ -460,6 +477,11 @@ export class QuizmakerService {
 
     } catch (error) {
       this.logger.error(`❌ Quiz generation failed: ${error.message}`);
+      
+      // Clean up heartbeat interval on error
+      if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+      }
       
       // Clean up temp files on error
       if (tempFilePath) {

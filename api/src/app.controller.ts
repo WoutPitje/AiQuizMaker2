@@ -218,11 +218,29 @@ export class AppController {
     @Body() options: PdfToQuizOptions = {}
   ) {
     try {
+      // Core SSE headers
       response.setHeader('Content-Type', 'text/event-stream');
-      response.setHeader('Cache-Control', 'no-cache');
+      response.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
       response.setHeader('Connection', 'keep-alive');
+      response.setHeader('Pragma', 'no-cache');
+      response.setHeader('Expires', '0');
+      
+      // Cloud Run specific headers to prevent buffering
+      response.setHeader('Transfer-Encoding', 'chunked');
+      response.setHeader('X-Accel-Buffering', 'no');
+      
+      // CORS headers for streaming
       response.setHeader('Access-Control-Allow-Origin', '*');
-      response.setHeader('Access-Control-Allow-Headers', 'Cache-Control');
+      response.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cache-Control');
+      response.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+      response.setHeader('Access-Control-Expose-Headers', 'Content-Type, Cache-Control, Connection');
+      
+      // Send initial connection event to establish stream
+      response.write(`data: ${JSON.stringify({ 
+        type: 'connection', 
+        message: 'Stream connected', 
+        timestamp: new Date().toISOString() 
+      })}\n\n`);
 
       // Check if file exists in storage
       const fileExists = await this.storageService.fileExists(filename, 'uploads');

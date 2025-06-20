@@ -76,6 +76,7 @@ resource "google_cloud_run_service" "api" {
         "autoscaling.knative.dev/minScale" = tostring(var.min_instances)
         "autoscaling.knative.dev/maxScale" = tostring(var.max_instances)
         "run.googleapis.com/cpu-throttling" = "false"
+        "run.googleapis.com/execution-environment" = "gen2"
       }
       
       labels = var.labels

@@ -158,6 +158,11 @@ export const useFileUploadStore = defineStore('fileUpload', () => {
     console.log('📡 Handling stream event:', event.type)
     
     switch (event.type) {
+      case 'connection':
+        console.log('🔗 Stream connection established')
+        streamingProgress.value = 'Connected to quiz generation stream...'
+        break
+        
       case 'start':
         streamingProgress.value = event.data.message
         break
@@ -211,6 +216,11 @@ export const useFileUploadStore = defineStore('fileUpload', () => {
         if (event.data.quiz) {
           streamingQuestions.value = event.data.quiz.questions
         }
+        break
+        
+      case 'heartbeat':
+        // Ignore heartbeat messages, they're just to keep connection alive
+        console.log('💓 Heartbeat received')
         break
         
       case 'error':

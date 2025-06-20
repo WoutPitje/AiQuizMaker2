@@ -83,7 +83,6 @@ After deployment, Terraform will output:
 ### 4. Deploy the API
 
 ```bash
-cd ..
 export GCP_PROJECT_ID=aiquizmaker-1750103493
 export GCP_REGION=europe-west4  # or your chosen region
 chmod +x deploy-api.sh

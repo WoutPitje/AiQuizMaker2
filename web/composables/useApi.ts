@@ -103,13 +103,24 @@ export const useApi = () => {
     
     try {
       console.log('📡 Making POST request to streaming endpoint...')
+      
+      // Create AbortController for timeout handling
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => {
+        controller.abort()
+      }, 60000) // 60 second timeout for initial connection
+      
       const response = await fetch(`${baseURL}/quiz/generate-stream/${filename}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(options || {}),
+        signal: controller.signal,
       })
+      
+      // Clear timeout once connected
+      clearTimeout(timeoutId)
       
       console.log('📊 Response status:', response.status)
       console.log('📊 Response headers:', [...response.headers.entries()])

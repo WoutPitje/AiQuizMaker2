@@ -86,5 +86,5 @@ variable "cloud_run_memory" {
 variable "cloud_run_timeout" {
   description = "Cloud Run request timeout in seconds"
   type        = number
-  default     = 300 # 5 minutes for PDF processing
+  default     = 3600 # 60 minutes for long-running streaming quiz generation
 } 
