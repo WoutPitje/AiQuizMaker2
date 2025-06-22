@@ -2,17 +2,17 @@
   <div class="min-h-screen bg-gray-50">
     <!-- Header -->
     <header class="bg-white border-b border-gray-200">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div class="flex justify-between items-center">
-          <div class="text-2xl font-bold text-gray-900">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+        <div class="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0">
+          <div class="text-2xl font-bold text-gray-900 text-center sm:text-left">
             🧠 QuizAi
           </div>
-          <div class="flex items-center space-x-3">
+          <div class="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-3">
             <a
               href="https://www.linkedin.com/in/wout-pittens-425b31200/"
               target="_blank"
               rel="noopener noreferrer"
-              class="inline-flex items-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md"
+              class="inline-flex items-center justify-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md"
             >
               💼 LinkedIn
             </a>
@@ -20,7 +20,7 @@
               href="https://buymeacoffee.com/woutpittens"
               target="_blank"
               rel="noopener noreferrer"
-              class="inline-flex items-center px-3 py-2 bg-yellow-400 hover:bg-yellow-500 text-gray-900 text-sm font-medium rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md"
+              class="inline-flex items-center justify-center px-3 py-2 bg-yellow-400 hover:bg-yellow-500 text-gray-900 text-sm font-medium rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md"
             >
               ☕ Buy me a coffee
             </a>
@@ -269,16 +269,18 @@
     <footer class="bg-white border-t border-gray-200 mt-16">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div class="text-center space-y-4">
-          <div class="flex justify-center items-center space-x-6">
-            <p class="text-sm text-gray-500">
+          <!-- Mobile: Stack vertically, Desktop: Horizontal layout -->
+          <div class="flex flex-col space-y-4 sm:flex-row sm:justify-center sm:items-center sm:space-y-0 sm:space-x-6">
+            <p class="text-sm text-gray-500 text-center sm:text-left">
               🧠 QuizAi - Powered by Vue 3, Nuxt.js & OpenAI GPT
             </p>
-            <div class="border-l border-gray-300 pl-6 flex items-center space-x-3">
+            <!-- Mobile: No border, Desktop: Left border -->
+            <div class="sm:border-l sm:border-gray-300 sm:pl-6 flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-3">
               <a
                 href="https://www.linkedin.com/in/wout-pittens-425b31200/"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md"
+                class="inline-flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md"
               >
                 💼 Connect on LinkedIn
               </a>
@@ -286,7 +288,7 @@
                 href="https://buymeacoffee.com/woutpittens"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="inline-flex items-center px-4 py-2 bg-yellow-400 hover:bg-yellow-500 text-gray-900 text-sm font-medium rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md"
+                class="inline-flex items-center justify-center px-4 py-2 bg-yellow-400 hover:bg-yellow-500 text-gray-900 text-sm font-medium rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md"
               >
                 ☕ Buy me a coffee
               </a>
@@ -298,6 +300,13 @@
         </div>
       </div>
     </footer>
+
+    <!-- Coffee Support Popup -->
+    <CoffeePopup 
+      ref="coffeePopupRef"
+      @close="handleCoffeePopupClose"
+      @coffee-click="handleCoffeeClick"
+    />
   </div>
 </template>
 
@@ -324,6 +333,22 @@ useHead({
 const fileUploadStore = useFileUploadStore()
 const { quizError, hasGeneratedQuiz, isGeneratingQuiz, hasUploadedFile } = storeToRefs(fileUploadStore)
 
+// Coffee popup reference
+const coffeePopupRef = ref(null)
+
+// Listen for coffee popup trigger event
+onMounted(() => {
+  window.addEventListener('show-coffee-popup', () => {
+    if (coffeePopupRef.value) {
+      coffeePopupRef.value.showPopup()
+    }
+  })
+})
+
+onUnmounted(() => {
+  window.removeEventListener('show-coffee-popup', () => {})
+})
+
 const clearQuizError = () => {
   fileUploadStore.clearQuizError()
 }
@@ -336,5 +361,15 @@ const handleUploadNewFile = () => {
 const handleStartNewQuiz = () => {
   // Start a new quiz with the same file
   fileUploadStore.startNewQuiz()
+}
+
+// Coffee popup event handlers
+const handleCoffeePopupClose = () => {
+  console.log('☕ Coffee popup closed')
+}
+
+const handleCoffeeClick = () => {
+  console.log('☕ User clicked coffee button from popup')
+  // You can add analytics tracking here if needed
 }
 </script> 

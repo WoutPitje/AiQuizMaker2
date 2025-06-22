@@ -43,22 +43,23 @@
       <div v-else-if="currentQuiz">
         <!-- Header with branding -->
         <div class="text-center mb-8">
-          <div class="grid grid-cols-3 items-center mb-6">
-            <div></div>
+          <!-- Mobile: Stack vertically, Desktop: Grid layout -->
+          <div class="flex flex-col space-y-4 sm:grid sm:grid-cols-3 sm:items-center sm:space-y-0 mb-6">
+            <div class="hidden sm:block"></div>
             <div class="text-center">
-              <h1 class="text-3xl font-bold text-gray-900 mb-2">
+              <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
                 🧠 QuizAi
               </h1>
-              <p class="text-gray-600">
+              <p class="text-sm sm:text-base text-gray-600">
                 AI-powered quiz from your PDF documents
               </p>
             </div>
-            <div class="flex justify-end">
+            <div class="flex justify-center sm:justify-end">
               <a
                 href="https://buymeacoffee.com/woutpittens"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="inline-flex items-center px-3 py-2 bg-yellow-400 hover:bg-yellow-500 text-gray-900 text-sm font-medium rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md"
+                class="inline-flex items-center justify-center px-3 py-2 bg-yellow-400 hover:bg-yellow-500 text-gray-900 text-sm font-medium rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md"
               >
                 ☕ Buy me a coffee
               </a>
@@ -69,36 +70,45 @@
         <!-- Quiz Component -->
         <QuizDisplay />
 
-        <!-- Back to Home -->
-        <div class="text-center mt-8">
-          <NuxtLink
-            to="/"
-            class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
-          >
-            <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-            </svg>
-            Create Your Own Quiz
-          </NuxtLink>
-        </div>
+        <!-- Action Buttons -->
+        <div class="text-center mt-8 space-y-4">
+          <!-- Back to Home -->
+          <div>
+            <NuxtLink
+              to="/"
+              class="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+              </svg>
+              Create Your Own Quiz
+            </NuxtLink>
+          </div>
 
-        <!-- Buy Me a Coffee -->
-        <div class="text-center mt-8 pt-8 border-t border-gray-200">
-          <a
-            href="https://buymeacoffee.com/woutpittens"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="inline-flex items-center px-4 py-2 bg-yellow-400 hover:bg-yellow-500 text-gray-900 text-sm font-medium rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md"
-          >
-
-            ☕ Buy me a coffee
-          </a>
-          <p class="text-xs text-gray-500 mt-2">
-            Support the development of QuizAi
-          </p>
+          <!-- Buy Me a Coffee -->
+          <div class="pt-4 border-t border-gray-200">
+            <a
+              href="https://buymeacoffee.com/woutpittens"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 bg-yellow-400 hover:bg-yellow-500 text-gray-900 text-sm font-medium rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md"
+            >
+              ☕ Buy me a coffee
+            </a>
+            <p class="text-xs text-gray-500 mt-2">
+              Support the development of QuizAi
+            </p>
+          </div>
         </div>
       </div>
     </div>
+
+    <!-- Coffee Support Popup -->
+    <CoffeePopup 
+      ref="coffeePopupRef"
+      @close="handleCoffeePopupClose"
+      @coffee-click="handleCoffeeClick"
+    />
   </div>
 </template>
 
@@ -120,6 +130,7 @@ const { currentQuiz, quizError } = storeToRefs(fileUploadStore)
 
 const isLoading = ref(true)
 const error = ref<string | null>(null)
+const coffeePopupRef = ref(null)
 
 const magicLink = computed(() => route.params.magicLink as string)
 
@@ -154,6 +165,15 @@ const loadQuiz = async () => {
 
 const retryLoad = () => {
   loadQuiz()
+}
+
+// Coffee popup event handlers
+const handleCoffeePopupClose = () => {
+  console.log('☕ Coffee popup closed on quiz page')
+}
+
+const handleCoffeeClick = () => {
+  console.log('☕ User clicked coffee button from popup on quiz page')
 }
 
 // Load quiz when component mounts

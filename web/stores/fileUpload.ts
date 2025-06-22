@@ -216,6 +216,17 @@ export const useFileUploadStore = defineStore('fileUpload', () => {
         if (event.data.quiz) {
           streamingQuestions.value = event.data.quiz.questions
         }
+
+        // Show coffee popup after successful quiz generation (good moment to ask for support)
+        setTimeout(() => {
+          // Trigger coffee popup if conditions are met
+          const shouldShow = !sessionStorage.getItem('coffeePopupShown') && 
+                           !localStorage.getItem('coffeePopupHideUntil')
+          if (shouldShow) {
+            // Emit event that can be caught by parent components
+            window.dispatchEvent(new CustomEvent('show-coffee-popup'))
+          }
+        }, 2000) // Show 2 seconds after quiz completion
         break
         
       case 'heartbeat':

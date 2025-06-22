@@ -46,7 +46,7 @@
     </div>
 
     <!-- Quiz Actions -->
-    <div class="flex justify-center space-x-4 mt-8 pt-6 border-t border-gray-200">
+    <div class="flex justify-center mt-8 pt-6 border-t border-gray-200">
       <button
         v-if="currentShareUrl"
         @click="copyShareUrl"
@@ -54,12 +54,6 @@
         class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
       >
         {{ copyingLink ? 'Copied!' : 'Share Quiz' }}
-      </button>
-      <button
-        @click="clearQuiz"
-        class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
-      >
-        Close Quiz
       </button>
     </div>
   </div>
