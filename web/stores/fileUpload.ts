@@ -134,7 +134,7 @@ export const useFileUploadStore = defineStore('fileUpload', () => {
         ...options
       }
 
-      // Start SSE connection
+      // Start WebSocket connection
       const closeConnection = apiGenerateQuizStream(
         filename,
         quizOptions,

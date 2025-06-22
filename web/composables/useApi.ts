@@ -97,103 +97,24 @@ export const useApi = () => {
     onError?: (error: any) => void,
     onComplete?: () => void
   ) => {
-    console.log('🌊 Starting streaming quiz generation for:', filename)
+    // Import WebSocket composable dynamically to avoid circular imports
+    const { useWebSocket } = await import('./useWebSocket')
+    const { generateQuizStream: wsGenerateQuizStream } = useWebSocket()
+    
+    console.log('🌊 Starting WebSocket quiz generation for:', filename)
     console.log('🌐 Options:', options)
-    console.log('🔗 Full URL:', `${baseURL}/quiz/generate-stream/${filename}`)
     
     try {
-      console.log('📡 Making POST request to streaming endpoint...')
-      
-      // Create AbortController for timeout handling
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => {
-        controller.abort()
-      }, 60000) // 60 second timeout for initial connection
-      
-      const response = await fetch(`${baseURL}/quiz/generate-stream/${filename}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(options || {}),
-        signal: controller.signal,
-      })
-      
-      // Clear timeout once connected
-      clearTimeout(timeoutId)
-      
-      console.log('📊 Response status:', response.status)
-      console.log('📊 Response headers:', [...response.headers.entries()])
-      
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error('❌ Response error:', errorText)
-        throw new Error(`Streaming failed: ${response.statusText} - ${errorText}`)
-      }
-      
-      if (!response.body) {
-        throw new Error('No response body available for streaming')
-      }
-      
-      const reader = response.body.getReader()
-      const decoder = new TextDecoder()
-      
-      let buffer = ''
-      
-      const processStream = async () => {
-        try {
-          while (true) {
-            const { done, value } = await reader.read()
-            
-            if (done) {
-              if (onComplete) {
-                onComplete()
-              }
-              break
-            }
-            
-            buffer += decoder.decode(value, { stream: true })
-            
-            // Process complete messages
-            const lines = buffer.split('\n')
-            buffer = lines.pop() || '' // Keep incomplete line in buffer
-            
-            for (const line of lines) {
-              if (line.trim().startsWith('data: ')) {
-                try {
-                  const jsonStr = line.trim().substring(6) // Remove 'data: '
-                  if (jsonStr) {
-                    const data = JSON.parse(jsonStr)
-                    console.log('📡 Streaming event received:', data.type, data.data?.message)
-                    
-                    if (onEvent) {
-                      onEvent(data)
-                    }
-                  }
-                } catch (parseError) {
-                  console.error('❌ Failed to parse streaming event:', parseError)
-                }
-              }
-            }
-          }
-        } catch (streamError) {
-          console.error('❌ Stream processing error:', streamError)
-          if (onError) {
-            onError(streamError)
-          }
-        }
-      }
-      
-      // Start processing the stream
-      processStream()
-      
-      // Return cleanup function
-      return () => {
-        reader.cancel()
-      }
-      
+      return await wsGenerateQuizStream(
+        baseURL,
+        filename,
+        options,
+        onEvent,
+        onError,
+        onComplete
+      )
     } catch (error: any) {
-      console.error('❌ Streaming connection error:', error)
+      console.error('❌ WebSocket quiz generation error:', error)
       if (onError) {
         onError(error)
       }

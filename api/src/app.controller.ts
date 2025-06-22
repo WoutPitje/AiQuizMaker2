@@ -285,139 +285,139 @@ export class AppController {
     }
   }
 
-  @Post('cleanup-files')
-  async cleanupFiles(@Body() options?: { olderThanHours?: number }) {
-    try {
-      const olderThanHours = options?.olderThanHours || 24;
-      const result = await this.quizmakerService.cleanupOldUploadedFiles(olderThanHours);
+  // @Post('cleanup-files')
+  // async cleanupFiles(@Body() options?: { olderThanHours?: number }) {
+  //   try {
+  //     const olderThanHours = options?.olderThanHours || 24;
+  //     const result = await this.quizmakerService.cleanupOldUploadedFiles(olderThanHours);
       
-      return {
-        success: true,
-        message: `Cleanup completed: ${result.cleaned} files removed`,
-        cleaned: result.cleaned,
-        errors: result.errors
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: 'Failed to cleanup files',
-        error: error.message
-      };
-    }
-  }
+  //     return {
+  //       success: true,
+  //       message: `Cleanup completed: ${result.cleaned} files removed`,
+  //       cleaned: result.cleaned,
+  //       errors: result.errors
+  //     };
+  //   } catch (error) {
+  //     return {
+  //       success: false,
+  //       message: 'Failed to cleanup files',
+  //       error: error.message
+  //     };
+  //   }
+  // }
 
-  @Get('files')
-  async listUploadedFiles() {
-    try {
-      const files = await this.storageService.listFiles('uploads');
-      const storageType = await this.getStorageInfo();
+  // @Get('files')
+  // async listUploadedFiles() {
+  //   try {
+  //     const files = await this.storageService.listFiles('uploads');
+  //     const storageType = await this.getStorageInfo();
       
-      const fileDetails = await Promise.all(
-        files.map(async (filename) => {
-          try {
-            const metadata = await this.storageService.getFileMetadata(filename, 'uploads');
-            return {
-              filename,
-              originalName: this.extractOriginalName(filename),
-              size: this.getMetadataSize(metadata),
-              sizeFormatted: this.formatFileSize(this.getMetadataSize(metadata)),
-              created: this.getMetadataDate(metadata, 'created'),
-              modified: this.getMetadataDate(metadata, 'updated'),
-              downloadUrl: `/files/${filename}`
-            };
-          } catch (error) {
-            console.warn(`Could not get metadata for ${filename}:`, error.message);
-            return {
-              filename,
-              originalName: this.extractOriginalName(filename),
-              size: 0,
-              sizeFormatted: '0 B',
-              created: new Date(),
-              modified: new Date(),
-              downloadUrl: `/files/${filename}`
-            };
-          }
-        })
-      );
+  //     const fileDetails = await Promise.all(
+  //       files.map(async (filename) => {
+  //         try {
+  //           const metadata = await this.storageService.getFileMetadata(filename, 'uploads');
+  //           return {
+  //             filename,
+  //             originalName: this.extractOriginalName(filename),
+  //             size: this.getMetadataSize(metadata),
+  //             sizeFormatted: this.formatFileSize(this.getMetadataSize(metadata)),
+  //             created: this.getMetadataDate(metadata, 'created'),
+  //             modified: this.getMetadataDate(metadata, 'updated'),
+  //             downloadUrl: `/files/${filename}`
+  //           };
+  //         } catch (error) {
+  //           console.warn(`Could not get metadata for ${filename}:`, error.message);
+  //           return {
+  //             filename,
+  //             originalName: this.extractOriginalName(filename),
+  //             size: 0,
+  //             sizeFormatted: '0 B',
+  //             created: new Date(),
+  //             modified: new Date(),
+  //             downloadUrl: `/files/${filename}`
+  //           };
+  //         }
+  //       })
+  //     );
 
-      const sortedFiles = fileDetails.sort((a, b) => 
-        new Date(b.created).getTime() - new Date(a.created).getTime()
-      );
+  //     const sortedFiles = fileDetails.sort((a, b) => 
+  //       new Date(b.created).getTime() - new Date(a.created).getTime()
+  //     );
 
-      return {
-        success: true,
-        files: sortedFiles,
-        total: sortedFiles.length,
-        totalSize: sortedFiles.reduce((sum, file) => sum + file.size, 0),
-        totalSizeFormatted: this.formatFileSize(sortedFiles.reduce((sum, file) => sum + file.size, 0)),
-        storage: storageType
-      };
-    } catch (error) {
-      console.error('Failed to list files:', error);
-      return {
-        success: false,
-        message: 'Failed to list files',
-        error: error.message
-      };
-    }
-  }
+  //     return {
+  //       success: true,
+  //       files: sortedFiles,
+  //       total: sortedFiles.length,
+  //       totalSize: sortedFiles.reduce((sum, file) => sum + file.size, 0),
+  //       totalSizeFormatted: this.formatFileSize(sortedFiles.reduce((sum, file) => sum + file.size, 0)),
+  //       storage: storageType
+  //     };
+  //   } catch (error) {
+  //     console.error('Failed to list files:', error);
+  //     return {
+  //       success: false,
+  //       message: 'Failed to list files',
+  //       error: error.message
+  //     };
+  //   }
+  // }
 
-  @Get('files/:filename')
-  async downloadFile(@Param('filename') filename: string, @Res() res: Response) {
-    try {
-      const buffer = await this.storageService.downloadFile(filename, 'uploads');
+  // @Get('files/:filename')
+  // async downloadFile(@Param('filename') filename: string, @Res() res: Response) {
+  //   try {
+  //     const buffer = await this.storageService.downloadFile(filename, 'uploads');
       
-      res.set({
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${filename}"`,
-        'Content-Length': buffer.length.toString(),
-      });
+  //     res.set({
+  //       'Content-Type': 'application/pdf',
+  //       'Content-Disposition': `attachment; filename="${filename}"`,
+  //       'Content-Length': buffer.length.toString(),
+  //     });
       
-      res.send(buffer);
-    } catch (error) {
-      console.error(`Failed to download file ${filename}:`, error);
-      res.status(404).json({
-        success: false,
-        message: 'File not found',
-        error: error.message
-      });
-    }
-  }
+  //     res.send(buffer);
+  //   } catch (error) {
+  //     console.error(`Failed to download file ${filename}:`, error);
+  //     res.status(404).json({
+  //       success: false,
+  //       message: 'File not found',
+  //       error: error.message
+  //     });
+  //   }
+  // }
 
-  @Get('files/:filename/info')
-  async getFileInfo(@Param('filename') filename: string) {
-    try {
-      const exists = await this.storageService.fileExists(filename, 'uploads');
+  // @Get('files/:filename/info')
+  // async getFileInfo(@Param('filename') filename: string) {
+  //   try {
+  //     const exists = await this.storageService.fileExists(filename, 'uploads');
       
-      if (!exists) {
-        return {
-          success: false,
-          message: 'File not found'
-        };
-      }
+  //     if (!exists) {
+  //       return {
+  //         success: false,
+  //         message: 'File not found'
+  //       };
+  //     }
 
-      const metadata = await this.storageService.getFileMetadata(filename, 'uploads');
-      const storageType = await this.getStorageInfo();
+  //     const metadata = await this.storageService.getFileMetadata(filename, 'uploads');
+  //     const storageType = await this.getStorageInfo();
       
-      return {
-        success: true,
-        file: {
-          filename,
-          size: this.getMetadataSize(metadata),
-          sizeFormatted: this.formatFileSize(this.getMetadataSize(metadata)),
-          created: this.getMetadataDate(metadata, 'created'),
-          modified: this.getMetadataDate(metadata, 'updated')
-        },
-        storage: storageType
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: 'Failed to get file info',
-        error: error.message
-      };
-    }
-  }
+  //     return {
+  //       success: true,
+  //       file: {
+  //         filename,
+  //         size: this.getMetadataSize(metadata),
+  //         sizeFormatted: this.formatFileSize(this.getMetadataSize(metadata)),
+  //         created: this.getMetadataDate(metadata, 'created'),
+  //         modified: this.getMetadataDate(metadata, 'updated')
+  //       },
+  //       storage: storageType
+  //     };
+  //   } catch (error) {
+  //     return {
+  //       success: false,
+  //       message: 'Failed to get file info',
+  //       error: error.message
+  //     };
+  //   }
+  // }
 
   private formatFileSize(bytes: number): string {
     if (bytes === 0) return '0 B';

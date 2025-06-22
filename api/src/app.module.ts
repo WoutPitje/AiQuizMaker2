@@ -7,6 +7,7 @@ import { QuizmakerService } from './quizmaker.service';
 import { AiService } from './ai.service';
 import { GcsService } from './gcs.service';
 import { StorageService } from './storage.service';
+import { QuizWebSocketGateway } from './quiz-websocket.gateway';
 
 @Module({
   imports: [
@@ -21,7 +22,8 @@ import { StorageService } from './storage.service';
     QuizmakerService, 
     AiService, 
     GcsService,
-    StorageService
+    StorageService,
+    QuizWebSocketGateway
   ],
 })
 export class AppModule implements NestModule {
