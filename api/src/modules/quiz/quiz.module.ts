@@ -6,11 +6,12 @@ import { QuizEntity } from './entities/quiz.entity';
 import { StorageModule } from '../storage/storage.module';
 import { AiModule } from '../ai/ai.module';
 import { FileServerService } from '../../file-server.service';
+import { QuizOwnershipGuard } from './guards/quiz-ownership.guard';
 
 @Module({
   imports: [TypeOrmModule.forFeature([QuizEntity]), StorageModule, AiModule],
   controllers: [QuizController],
-  providers: [QuizService, FileServerService],
+  providers: [QuizService, FileServerService, QuizOwnershipGuard],
   exports: [QuizService],
 })
 export class QuizModule {}

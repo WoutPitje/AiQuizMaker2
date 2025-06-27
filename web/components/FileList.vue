@@ -28,9 +28,46 @@
       </p>
     </div>
 
+    <!-- Quiz Limit Notice -->
+    <div v-if="quizLimitInfo" class="mb-6 p-4 rounded-md" :class="quizLimitInfo.allowed ? 'bg-blue-50 border border-blue-200' : 'bg-red-50 border border-red-200'">
+      <div class="flex items-start">
+        <div class="flex-shrink-0">
+          <svg v-if="quizLimitInfo.allowed" class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+          </svg>
+          <svg v-else class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <h3 class="text-sm font-medium" :class="quizLimitInfo.allowed ? 'text-blue-800' : 'text-red-800'">
+            {{ authStore.isLoggedIn ? 'Authenticated User' : 'Anonymous User' }} - Quiz Limit {{ quizLimitInfo.current }}/{{ quizLimitInfo.limit }}
+          </h3>
+          <div class="mt-2 text-sm" :class="quizLimitInfo.allowed ? 'text-blue-700' : 'text-red-700'">
+            <p v-if="quizLimitInfo.allowed">
+              You can create {{ quizLimitInfo.limit - quizLimitInfo.current }} more quiz{{ quizLimitInfo.limit - quizLimitInfo.current === 1 ? '' : 's' }}.
+              {{ !authStore.isLoggedIn ? 'Anonymous users are limited to multiple-choice questions only.' : '' }}
+            </p>
+            <p v-else>
+              {{ quizLimitInfo.message }}
+            </p>
+            <p v-if="!authStore.isLoggedIn" class="mt-1">
+              <NuxtLink to="/login" class="font-medium underline hover:text-blue-900">Sign in</NuxtLink> 
+              or 
+              <NuxtLink to="/register" class="font-medium underline hover:text-blue-900">create an account</NuxtLink> 
+              for higher limits and advanced features.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Quiz Generation Options -->
     <div class="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-md">
-      <h4 class="text-sm font-medium text-gray-900 mb-3">📋 Quiz Options</h4>
+      <div class="flex items-center justify-between mb-3">
+        <h4 class="text-sm font-medium text-gray-900">📋 Quiz Options</h4>
+        <span v-if="!authStore.isLoggedIn" class="text-xs text-amber-600 font-medium">Limited Options</span>
+      </div>
       
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <!-- Questions per page -->
@@ -55,20 +92,24 @@
         <div>
           <label class="block text-xs font-medium text-gray-700 mb-1">
             Question Type
+            <span v-if="!authStore.isLoggedIn" class="text-amber-600">🔒 (Limited)</span>
           </label>
           <select 
             v-model="questionType" 
-            :disabled="isGeneratingQuiz"
+            :disabled="isGeneratingQuiz || !authStore.isLoggedIn"
             class="w-full px-2 py-1 text-sm border border-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <option value="multiple-choice">🔘 Multiple Choice</option>
-            <option value="flashcard">🃏 Flashcards</option>
-            <option value="true-false">✅ True/False</option>
-            <option value="fill-in-blank">📝 Fill in the Blank</option>
-            <option value="short-answer">💭 Short Answer</option>
-            <option value="matching">🔗 Matching</option>
-            <option value="mixed">🎯 Mixed Types</option>
+            <option v-if="authStore.isLoggedIn" value="flashcard">🃏 Flashcards</option>
+            <option v-if="authStore.isLoggedIn" value="true-false">✅ True/False</option>
+            <option v-if="authStore.isLoggedIn" value="fill-in-blank">📝 Fill in the Blank</option>
+            <option v-if="authStore.isLoggedIn" value="short-answer">💭 Short Answer</option>
+            <option v-if="authStore.isLoggedIn" value="matching">🔗 Matching</option>
+            <option v-if="authStore.isLoggedIn" value="mixed">🎯 Mixed Types</option>
           </select>
+          <p v-if="!authStore.isLoggedIn" class="text-xs text-amber-600 mt-1">
+            Sign in to unlock all question types
+          </p>
         </div>
 
         <!-- Difficulty -->
@@ -143,7 +184,7 @@
           <button
             v-if="!hasGeneratedQuiz"
             @click="generateQuizStream"
-            :disabled="isGeneratingQuiz"
+            :disabled="isGeneratingQuiz || (quizLimitInfo && !quizLimitInfo.allowed)"
             class="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
            
@@ -218,18 +259,48 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 
 const fileUploadStore = useFileUploadStore()
+const authStore = useAuthStore()
+const { checkQuizLimit } = useAuth()
 
 // Store state
 const { uploadedFile, hasUploadedFile, isGeneratingQuiz, supportedLanguages, selectedLanguage, hasGeneratedQuiz } = storeToRefs(fileUploadStore)
+
+// Quiz limit state
+const quizLimitInfo = ref<any>(null)
 
 // Quiz generation options
 const questionsPerPage = ref<number>(2)
 const questionType = ref<string>('multiple-choice')
 const difficulty = ref<string>('mixed')
 const includeExplanations = ref<boolean>(true)
+
+// Load quiz limit information on component mount and when auth state changes
+const fetchQuizLimit = async () => {
+  try {
+    const response = await checkQuizLimit()
+    quizLimitInfo.value = response
+  } catch (error) {
+    console.error('Failed to fetch quiz limit:', error)
+    quizLimitInfo.value = null
+  }
+}
+
+// Watch for authentication changes and enforce restrictions for anonymous users
+watch(() => authStore.isLoggedIn, (isLoggedIn) => {
+  if (!isLoggedIn) {
+    // Force anonymous users to multiple-choice only
+    questionType.value = 'multiple-choice'
+  }
+  // Refetch quiz limit when auth status changes
+  fetchQuizLimit()
+}, { immediate: true })
+
+onMounted(() => {
+  fetchQuizLimit()
+})
 
 // Utility functions
 const formatFileSize = (bytes: number): string => {
@@ -266,6 +337,13 @@ const handleRemoveFile = () => {
 const generateQuizStream = async () => {
   if (!uploadedFile.value) return
   
+  // Check quota before generation
+  await fetchQuizLimit()
+  if (quizLimitInfo.value && !quizLimitInfo.value.allowed) {
+    console.warn('Quiz generation blocked: limit exceeded')
+    return
+  }
+  
   const options = {
     questionsPerPage: questionsPerPage.value,
     difficulty: difficulty.value as 'easy' | 'medium' | 'hard' | 'mixed',
@@ -278,6 +356,9 @@ const generateQuizStream = async () => {
   console.log('🌐 Language:', selectedLanguage.value)
   
   await fileUploadStore.generateQuizStream(uploadedFile.value.filename, options)
+  
+  // Refresh quota after generation
+  await fetchQuizLimit()
 }
 
 const handleStartNewQuiz = () => {

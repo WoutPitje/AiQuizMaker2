@@ -108,7 +108,7 @@ export const useAuthStore = defineStore('auth', {
         const response = await login(credentials)
 
         this.setAuthData(response)
-        await navigateTo('/home')
+        await navigateTo('/')
         
         return { success: true }
       } catch (error: any) {
@@ -129,7 +129,7 @@ export const useAuthStore = defineStore('auth', {
         const response = await register(credentials)
 
         this.setAuthData(response)
-        await navigateTo('/home')
+        await navigateTo('/')
         
         return { success: true }
       } catch (error: any) {

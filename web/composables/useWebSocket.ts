@@ -27,16 +27,29 @@ export const useWebSocket = () => {
       // Extract the base URL without /api if present
       const socketURL = baseURL.replace('/api', '')
       
-      console.log('🔌 Connecting to WebSocket:', `${socketURL}/quiz`)
+      // Get auth token if available
+      const authToken = import.meta.client ? localStorage.getItem('auth_token') : null
+      
+      console.log('🔌 Connecting to WebSocket:', `${socketURL}/quiz`, authToken ? 'with auth' : 'without auth')
+      console.log('🔐 Auth token (first 20 chars):', authToken ? authToken.substring(0, 20) + '...' : 'none')
 
-      const newSocket = io(`${socketURL}/quiz`, {
+      const socketOptions: any = {
         transports: ['websocket', 'polling'],
         timeout: 10000,
         reconnection: true,
         reconnectionAttempts: 5,
         reconnectionDelay: 1000,
         autoConnect: true,
-      })
+      }
+
+      // Add auth token if available
+      if (authToken) {
+        socketOptions.auth = {
+          token: authToken
+        }
+      }
+
+      const newSocket = io(`${socketURL}/quiz`, socketOptions)
 
       newSocket.on('connect', () => {
         console.log('✅ WebSocket connected:', newSocket.id)

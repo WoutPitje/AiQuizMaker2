@@ -101,11 +101,59 @@ export class QuizWebsocketGateway
         userId: user?.id,
       });
 
-      // Add user ID to options for quiz association
+      // Add user ID to options for quiz association and apply restrictions for anonymous users
       const quizOptions = {
         ...options,
         userId: user?.id,
       };
+
+      // Apply restrictions for anonymous users
+      if (!user) {
+        this.logger.log('🔒 Anonymous user detected - applying quiz restrictions');
+        
+        // Validate and force multiple-choice only for anonymous users
+        if (quizOptions.quizType && quizOptions.quizType !== 'multiple-choice') {
+          this.logger.warn(`🚫 Anonymous user attempted to use ${quizOptions.quizType} - forcing multiple-choice`);
+        }
+        
+        if (quizOptions.questionTypes && !quizOptions.questionTypes.every(type => type === 'multiple-choice')) {
+          this.logger.warn('🚫 Anonymous user attempted to use non-multiple-choice question types - forcing multiple-choice');
+        }
+        
+        // Force multiple-choice only for anonymous users
+        quizOptions.questionTypes = ['multiple-choice'];
+        quizOptions.quizType = 'multiple-choice';
+        
+        // Limit other options for anonymous users
+        quizOptions.questionsPerPage = Math.min(quizOptions.questionsPerPage || 2, 5); // Max 5 questions per page
+        quizOptions.includeExplanations = quizOptions.includeExplanations !== false; // Default to true
+        
+        this.logger.log('🔒 Applied anonymous restrictions:', {
+          questionTypes: quizOptions.questionTypes,
+          quizType: quizOptions.quizType,
+          questionsPerPage: quizOptions.questionsPerPage,
+        });
+      } else {
+        this.logger.log('✅ Authenticated user - no restrictions applied');
+      }
+      
+      this.logger.log(`🔍 Quiz generation user context: ${user?.id} (type: ${typeof user?.id}), authenticated: ${!!user}`);
+
+      // Check quiz generation limits
+      const limitCheck = await this.quizService.checkQuizLimit(user?.id || null);
+      if (!limitCheck.allowed) {
+        this.logger.warn(`🚫 Quiz limit exceeded for ${user ? `user ${user.id}` : 'anonymous user'}: ${limitCheck.current}/${limitCheck.limit}`);
+        client.emit('quiz-error', {
+          type: 'limit_exceeded',
+          message: limitCheck.message,
+          current: limitCheck.current,
+          limit: limitCheck.limit,
+          authenticated: !!user,
+        });
+        return;
+      }
+
+      this.logger.log(`✅ Quiz limit check passed: ${limitCheck.current}/${limitCheck.limit} (${user ? 'authenticated' : 'anonymous'})`);
 
       // Check if file exists
       const fileExists = await this.storageService.fileExists(

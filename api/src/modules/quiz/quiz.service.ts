@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Like, MoreThan, IsNull } from 'typeorm';
 import { FileServerService } from '../../file-server.service';
 import { AiService } from '../ai/ai.service';
 import {
@@ -65,11 +65,13 @@ export class QuizService {
    */
   async saveQuiz(quiz: any, userId?: string | null): Promise<void> {
     try {
+      this.logger.log(`💾 Saving quiz with userId: ${userId} (type: ${typeof userId})`);
+      
       const quizEntity = new QuizEntity();
       quizEntity.magicLink = quiz.id; // Use ID as magic link for now
       quizEntity.title = quiz.title;
       quizEntity.description = quiz.description;
-      quizEntity.userId = userId || undefined;
+      quizEntity.userId = userId || null;
       quizEntity.sourceFilename = quiz.metadata?.sourceFile || '';
       quizEntity.totalQuestions = quiz.metadata?.totalQuestions || quiz.questions?.length || 0;
       quizEntity.totalPages = quiz.metadata?.totalPages || 0;
@@ -81,7 +83,7 @@ export class QuizService {
         version: quiz.version || 2
       };
       quizEntity.metadata = quiz.metadata;
-      quizEntity.isPublic = true; // Default to public for now
+      quizEntity.isPublic = !userId; // Private if user is logged in, public if anonymous
 
       const savedEntity = await this.quizRepository.save(quizEntity);
       this.logger.log(`Quiz saved to database: ${savedEntity.id}`);
@@ -184,11 +186,147 @@ export class QuizService {
   }
 
   /**
-   * List all quizzes with pagination
+   * List quizzes for a specific user
    */
-  async listQuizzes(): Promise<{ quizzes: any[]; total: number }> {
+  async listQuizzesByUser(userId: string): Promise<{ quizzes: any[]; total: number }> {
     try {
       const [quizEntities, total] = await this.quizRepository.findAndCount({
+        where: { userId },
+        relations: ['user'],
+        order: { createdAt: 'DESC' },
+      });
+
+      const quizzes = quizEntities.map((entity) => ({
+        id: entity.magicLink,
+        title: entity.title,
+        description: entity.description,
+        version: entity.quizData?.version || 2,
+        type: entity.quizData?.type || 'multiple-choice',
+        questions: entity.quizData?.questions || [],
+        metadata: {
+          ...entity.metadata,
+          sourceFile: entity.sourceFilename,
+          totalQuestions: entity.totalQuestions,
+          totalPages: entity.totalPages,
+          language: entity.language,
+          difficulty: entity.difficulty,
+        },
+        createdAt: entity.createdAt,
+        updatedAt: entity.updatedAt,
+        isPublic: entity.isPublic,
+        createdBy: entity.userId,
+        user: entity.user
+          ? {
+              id: entity.user.id,
+              email: entity.user.email,
+              fullName: entity.user.fullName,
+            }
+          : null,
+      }));
+
+      return { quizzes, total };
+    } catch (error) {
+      this.logger.error('Failed to list user quizzes:', error);
+      return { quizzes: [], total: 0 };
+    }
+  }
+
+  /**
+   * Count quizzes for rate limiting
+   */
+  async countQuizzesByUser(userId: string): Promise<number> {
+    try {
+      const count = await this.quizRepository.count({
+        where: { userId },
+      });
+      this.logger.log(`📊 User ${userId} has ${count} quizzes`);
+      return count;
+    } catch (error) {
+      this.logger.error(`Failed to count quizzes for user ${userId}:`, error);
+      return 0;
+    }
+  }
+
+  /**
+   * Count quizzes by source filename pattern (for anonymous users)
+   * This counts quizzes created from files with the same IP prefix pattern
+   */
+  async countQuizzesByIPPattern(filenamePattern: string): Promise<number> {
+    try {
+      // Extract the anonymous pattern (e.g., "anonymous-" from filenames)
+      // For anonymous users, we'll count by similar filename patterns
+      const count = await this.quizRepository.count({
+        where: {
+          userId: IsNull(), // Only count anonymous quizzes
+          sourceFilename: Like(`${filenamePattern}%`),
+        },
+      });
+      this.logger.log(`📊 Anonymous pattern ${filenamePattern} has ${count} quizzes`);
+      return count;
+    } catch (error) {
+      this.logger.error(`Failed to count quizzes for pattern ${filenamePattern}:`, error);
+      return 0;
+    }
+  }
+
+  /**
+   * Check if user has reached quiz generation limit
+   */
+  async checkQuizLimit(userId: string | null, clientIP?: string): Promise<{ allowed: boolean; current: number; limit: number; message?: string }> {
+    const AUTHENTICATED_LIMIT = 5;
+    const ANONYMOUS_LIMIT = 3;
+
+    try {
+      if (userId) {
+        // Authenticated user limit check
+        const current = await this.countQuizzesByUser(userId);
+        const allowed = current < AUTHENTICATED_LIMIT;
+        
+        return {
+          allowed,
+          current,
+          limit: AUTHENTICATED_LIMIT,
+          message: allowed ? undefined : `You have reached the maximum limit of ${AUTHENTICATED_LIMIT} quizzes. Please sign in to create more or delete existing ones.`
+        };
+      } else {
+        // Anonymous user limit check (count recent anonymous quizzes)
+        // For simplicity, we'll count all anonymous quizzes from the last 24 hours
+        const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        const count = await this.quizRepository.count({
+          where: {
+            userId: IsNull(),
+            createdAt: MoreThan(oneDayAgo),
+          },
+        });
+        
+        const allowed = count < ANONYMOUS_LIMIT;
+        
+        return {
+          allowed,
+          current: count,
+          limit: ANONYMOUS_LIMIT,
+          message: allowed ? undefined : `Anonymous users are limited to ${ANONYMOUS_LIMIT} quizzes per day. Please sign in to create more quizzes.`
+        };
+      }
+    } catch (error) {
+      this.logger.error('Failed to check quiz limit:', error);
+      // In case of error, allow creation but log the issue
+      return {
+        allowed: true,
+        current: 0,
+        limit: userId ? AUTHENTICATED_LIMIT : ANONYMOUS_LIMIT,
+        message: 'Unable to check quota, allowing creation'
+      };
+    }
+  }
+
+  /**
+   * List all public quizzes with pagination
+   */
+  async listPublicQuizzes(): Promise<{ quizzes: any[]; total: number }> {
+    try {
+      const [quizEntities, total] = await this.quizRepository.findAndCount({
+        where: { isPublic: true },
         relations: ['user'],
         order: { createdAt: 'DESC' },
       });
@@ -221,9 +359,17 @@ export class QuizService {
 
       return { quizzes, total };
     } catch (error) {
-      this.logger.error('Failed to list quizzes:', error);
+      this.logger.error('Failed to list public quizzes:', error);
       return { quizzes: [], total: 0 };
     }
+  }
+
+  /**
+   * List all quizzes with pagination (legacy method)
+   */
+  async listQuizzes(): Promise<{ quizzes: any[]; total: number }> {
+    // For backwards compatibility, return public quizzes
+    return this.listPublicQuizzes();
   }
 
   /**
@@ -242,6 +388,81 @@ export class QuizService {
         `❌ Failed to delete quiz: ${magicLink} - ${error.message}`,
       );
       return false;
+    }
+  }
+
+  /**
+   * Update quiz metadata (title, description)
+   */
+  async updateQuizMetadata(
+    magicLink: string,
+    updateData: { title?: string; description?: string },
+  ): Promise<any> {
+    try {
+      const quiz = await this.quizRepository.findOne({
+        where: { magicLink },
+        relations: ['user'],
+      });
+
+      if (!quiz) {
+        throw new Error('Quiz not found');
+      }
+
+      // Update fields if provided
+      if (updateData.title !== undefined) {
+        quiz.title = updateData.title;
+      }
+      if (updateData.description !== undefined) {
+        quiz.description = updateData.description;
+      }
+
+      const updatedQuiz = await this.quizRepository.save(quiz);
+      this.logger.log(`📝 Quiz metadata updated: ${magicLink}`);
+
+      // Return formatted response
+      return {
+        id: updatedQuiz.magicLink,
+        title: updatedQuiz.title,
+        description: updatedQuiz.description,
+        isPublic: updatedQuiz.isPublic,
+        updatedAt: updatedQuiz.updatedAt,
+      };
+    } catch (error) {
+      this.logger.error(`❌ Failed to update quiz metadata: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Update quiz visibility (public/private)
+   */
+  async updateQuizVisibility(magicLink: string, isPublic: boolean): Promise<any> {
+    try {
+      const quiz = await this.quizRepository.findOne({
+        where: { magicLink },
+        relations: ['user'],
+      });
+
+      if (!quiz) {
+        throw new Error('Quiz not found');
+      }
+
+      quiz.isPublic = isPublic;
+      const updatedQuiz = await this.quizRepository.save(quiz);
+      
+      this.logger.log(`👁️ Quiz visibility updated: ${magicLink} - ${isPublic ? 'public' : 'private'}`);
+
+      // Return formatted response
+      return {
+        id: updatedQuiz.magicLink,
+        title: updatedQuiz.title,
+        description: updatedQuiz.description,
+        isPublic: updatedQuiz.isPublic,
+        updatedAt: updatedQuiz.updatedAt,
+      };
+    } catch (error) {
+      this.logger.error(`❌ Failed to update quiz visibility: ${error.message}`);
+      throw error;
     }
   }
 

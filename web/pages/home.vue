@@ -1,189 +1,157 @@
 <template>
   <div class="min-h-screen bg-gray-50">
-    <!-- Navigation -->
-    <nav class="bg-white shadow">
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-200">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16">
           <div class="flex items-center">
             <h1 class="text-xl font-semibold text-gray-900">
-              AiQuizMaker
+              🧠 QuizAi Dashboard
             </h1>
           </div>
-          
           <div class="flex items-center space-x-4">
-            <span class="text-sm text-gray-700">
-              Welcome, {{ authStore.userName }}
+            <span class="text-sm text-gray-500">
+              {{ authStore.userName }}
             </span>
             <button
               @click="handleLogout"
-              :disabled="authStore.isLoading"
-              class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+              class="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
             >
-              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
-              {{ authStore.isLoading ? 'Signing out...' : 'Sign out' }}
+              Sign Out
             </button>
           </div>
         </div>
       </div>
-    </nav>
+    </header>
 
     <!-- Main Content -->
-    <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+    <main class="max-w-4xl mx-auto py-12 sm:px-6 lg:px-8">
       <div class="px-4 py-6 sm:px-0">
         <!-- Welcome Section -->
-        <div class="mb-8">
-          <div class="bg-white overflow-hidden shadow rounded-lg">
-            <div class="px-4 py-5 sm:p-6">
-              <h2 class="text-lg font-medium text-gray-900 mb-2">
-                Welcome to AiQuizMaker!
-              </h2>
-              <p class="text-gray-600">
-                You are successfully authenticated. Here you can manage your account and access all quiz features.
-              </p>
-            </div>
-          </div>
+        <div class="text-center mb-12">
+          <h2 class="text-3xl font-bold text-gray-900 mb-4">
+            Welcome back, {{ authStore.userName }}!
+          </h2>
+          <p class="text-lg text-gray-600">
+            Ready to create your next interactive quiz?
+          </p>
         </div>
 
-        <!-- User Information -->
-        <div class="mb-8">
-          <div class="bg-white overflow-hidden shadow rounded-lg">
-            <div class="px-4 py-5 sm:p-6">
-              <h3 class="text-lg font-medium text-gray-900 mb-4">
-                Account Information
-              </h3>
-              <dl class="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
-                <div>
-                  <dt class="text-sm font-medium text-gray-500">Name</dt>
-                  <dd class="mt-1 text-sm text-gray-900">
-                    {{ authStore.user?.name || 'Not provided' }}
-                  </dd>
-                </div>
-                <div>
-                  <dt class="text-sm font-medium text-gray-500">Email</dt>
-                  <dd class="mt-1 text-sm text-gray-900">
-                    {{ authStore.user?.email }}
-                  </dd>
-                </div>
-                <div>
-                  <dt class="text-sm font-medium text-gray-500">User ID</dt>
-                  <dd class="mt-1 text-sm text-gray-900">
-                    #{{ authStore.user?.id }}
-                  </dd>
-                </div>
-                <div>
-                  <dt class="text-sm font-medium text-gray-500">Member since</dt>
-                  <dd class="mt-1 text-sm text-gray-900">
-                    {{ formatDate(authStore.user?.createdAt) }}
-                  </dd>
-                </div>
-              </dl>
+        <!-- Create New Quiz Button -->
+        <div class="flex justify-center">
+          <NuxtLink
+            to="/"
+            class="group relative bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8 py-4 rounded-xl text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+          >
+            <div class="flex items-center space-x-3">
+              <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              <span>Create New Quiz</span>
             </div>
-          </div>
+          </NuxtLink>
         </div>
 
-        <!-- Quick Actions -->
-        <div class="mb-8">
-          <div class="bg-white overflow-hidden shadow rounded-lg">
-            <div class="px-4 py-5 sm:p-6">
-              <h3 class="text-lg font-medium text-gray-900 mb-4">
-                Quick Actions
-              </h3>
-              <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <!-- My Quizzes -->
+        <div class="mt-16">
+          <div class="text-center mb-8">
+            <h3 class="text-xl font-semibold text-gray-900">My Quizzes</h3>
+          </div>
+
+          <!-- Loading State -->
+          <div v-if="isLoading" class="text-center py-8">
+            <div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+            <p class="mt-2 text-sm text-gray-600">Loading your quizzes...</p>
+          </div>
+
+          <!-- Error State -->
+          <div v-else-if="error" class="text-center py-8">
+            <p class="text-gray-600 mb-4">{{ error }}</p>
+            <button
+              @click="loadUserQuizzes"
+              class="text-blue-600 hover:text-blue-700 font-medium"
+            >
+              Try Again
+            </button>
+          </div>
+
+          <!-- Empty State -->
+          <div v-else-if="userQuizzes.length === 0" class="text-center py-8">
+            <div class="text-gray-400 mb-4">
+              <svg class="h-16 w-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <p class="text-gray-600">No quizzes yet. Create your first one!</p>
+          </div>
+
+          <!-- Quiz List -->
+          <div v-else class="max-w-2xl mx-auto space-y-3">
+            <div
+              v-for="quiz in userQuizzes.slice(0, 5)"
+              :key="quiz.id"
+              class="bg-white rounded-lg border border-gray-200 p-4 hover:border-gray-300 transition-colors"
+            >
+              <div class="flex items-center justify-between">
+                <div class="flex-1 min-w-0">
+                  <h4 class="text-sm font-medium text-gray-900 truncate">{{ quiz.title }}</h4>
+                  <div class="flex items-center space-x-3 mt-1 text-xs text-gray-500">
+                    <span>{{ quiz.metadata?.totalQuestions || 0 }} questions</span>
+                    <span>{{ formatDate(quiz.createdAt) }}</span>
+                    <span 
+                      :class="quiz.isPublic ? 'text-green-600' : 'text-gray-500'"
+                      class="inline-flex items-center"
+                    >
+                      {{ quiz.isPublic ? '🌍 Public' : '🔒 Private' }}
+                    </span>
+                  </div>
+                </div>
                 <NuxtLink
-                  to="/"
-                  class="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-blue-500 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors"
+                  :to="`/quiz/${quiz.magicLink || quiz.id}`"
+                  class="ml-4 text-blue-600 hover:text-blue-700 text-sm font-medium"
                 >
-                  <div>
-                    <span class="rounded-lg inline-flex p-3 bg-blue-50 text-blue-700 ring-4 ring-white">
-                      <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                    </span>
-                  </div>
-                  <div class="mt-8">
-                    <h4 class="text-lg font-medium text-gray-900">
-                      Create Quiz
-                    </h4>
-                    <p class="mt-2 text-sm text-gray-500">
-                      Upload a PDF and generate interactive quizzes
-                    </p>
-                  </div>
+                  Take Quiz
                 </NuxtLink>
-
-                <button
-                  @click="refreshProfile"
-                  :disabled="isRefreshing"
-                  class="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-green-500 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors disabled:opacity-50"
-                >
-                  <div>
-                    <span class="rounded-lg inline-flex p-3 bg-green-50 text-green-700 ring-4 ring-white">
-                      <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                      </svg>
-                    </span>
-                  </div>
-                  <div class="mt-8">
-                    <h4 class="text-lg font-medium text-gray-900">
-                      {{ isRefreshing ? 'Refreshing...' : 'Refresh Profile' }}
-                    </h4>
-                    <p class="mt-2 text-sm text-gray-500">
-                      Update your account information
-                    </p>
-                  </div>
-                </button>
-
-                <button
-                  @click="clearAuthData"
-                  class="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-red-500 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors"
-                >
-                  <div>
-                    <span class="rounded-lg inline-flex p-3 bg-red-50 text-red-700 ring-4 ring-white">
-                      <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </span>
-                  </div>
-                  <div class="mt-8">
-                    <h4 class="text-lg font-medium text-gray-900">
-                      Clear Local Data
-                    </h4>
-                    <p class="mt-2 text-sm text-gray-500">
-                      Clear cached authentication data
-                    </p>
-                  </div>
-                </button>
               </div>
             </div>
-          </div>
-        </div>
 
-        <!-- Authentication Status -->
-        <div class="bg-white overflow-hidden shadow rounded-lg">
-          <div class="px-4 py-5 sm:p-6">
-            <h3 class="text-lg font-medium text-gray-900 mb-4">
-              Authentication Status
-            </h3>
-            <div class="space-y-3">
-              <div class="flex items-center">
-                <div class="flex-shrink-0">
-                  <div class="h-2 w-2 bg-green-400 rounded-full"></div>
-                </div>
-                <div class="ml-3">
-                  <p class="text-sm text-gray-700">
-                    <span class="font-medium">Status:</span> Authenticated
-                  </p>
-                </div>
-              </div>
-              <div class="flex items-center">
-                <div class="flex-shrink-0">
-                  <div class="h-2 w-2 bg-blue-400 rounded-full"></div>
-                </div>
-                <div class="ml-3">
-                  <p class="text-sm text-gray-700">
-                    <span class="font-medium">Token:</span> {{ tokenStatus }}
-                  </p>
+            <!-- View All Link -->
+            <div v-if="userQuizzes.length > 5" class="text-center pt-4">
+              <button
+                @click="showAllQuizzes = !showAllQuizzes"
+                class="text-blue-600 hover:text-blue-700 text-sm font-medium"
+              >
+                {{ showAllQuizzes ? 'Show Less' : `View All (${userQuizzes.length})` }}
+              </button>
+            </div>
+
+            <!-- Expanded List -->
+            <div v-if="showAllQuizzes && userQuizzes.length > 5" class="space-y-3 pt-3">
+              <div
+                v-for="quiz in userQuizzes.slice(5)"
+                :key="quiz.id"
+                class="bg-white rounded-lg border border-gray-200 p-4 hover:border-gray-300 transition-colors"
+              >
+                <div class="flex items-center justify-between">
+                  <div class="flex-1 min-w-0">
+                    <h4 class="text-sm font-medium text-gray-900 truncate">{{ quiz.title }}</h4>
+                    <div class="flex items-center space-x-3 mt-1 text-xs text-gray-500">
+                      <span>{{ quiz.metadata?.totalQuestions || 0 }} questions</span>
+                      <span>{{ formatDate(quiz.createdAt) }}</span>
+                      <span 
+                        :class="quiz.isPublic ? 'text-green-600' : 'text-gray-500'"
+                        class="inline-flex items-center"
+                      >
+                        {{ quiz.isPublic ? '🌍 Public' : '🔒 Private' }}
+                      </span>
+                    </div>
+                  </div>
+                  <NuxtLink
+                    :to="`/quiz/${quiz.magicLink || quiz.id}`"
+                    class="ml-4 text-blue-600 hover:text-blue-700 text-sm font-medium"
+                  >
+                    Take Quiz
+                  </NuxtLink>
                 </div>
               </div>
             </div>
@@ -196,41 +164,43 @@
 
 <script setup lang="ts">
 const authStore = useAuthStore()
-const isRefreshing = ref(false)
+const { getUserQuizzes } = useAuth()
 
-// Computed
-const tokenStatus = computed(() => {
-  if (!authStore.token) return 'No token'
-  const truncated = authStore.token.substring(0, 20) + '...'
-  return `Present (${truncated})`
-})
+// State
+const userQuizzes = ref<any[]>([])
+const isLoading = ref(true)
+const error = ref<string | null>(null)
+const showAllQuizzes = ref(false)
 
 // Methods
 const handleLogout = async () => {
   await authStore.logout()
 }
 
-const refreshProfile = async () => {
-  isRefreshing.value = true
-  try {
-    await authStore.verifyToken()
-  } catch (error) {
-    console.error('Failed to refresh profile:', error)
-  } finally {
-    isRefreshing.value = false
-  }
-}
+const loadUserQuizzes = async () => {
+  isLoading.value = true
+  error.value = null
 
-const clearAuthData = () => {
-  authStore.clearAuth()
-  navigateTo('/login')
+  try {
+    const response = await getUserQuizzes()
+    if (response.success) {
+      userQuizzes.value = response.quizzes
+      console.log('📋 Loaded quizzes:', response.quizzes)
+    } else {
+      error.value = response.message || 'Failed to load quizzes'
+    }
+  } catch (err: any) {
+    error.value = err.message || 'Failed to load quizzes'
+    console.error('Failed to load user quizzes:', err)
+  } finally {
+    isLoading.value = false
+  }
 }
 
 const formatDate = (dateString?: string) => {
   if (!dateString) return 'Unknown'
   return new Date(dateString).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
+    month: 'short',
     day: 'numeric'
   })
 }
@@ -240,10 +210,15 @@ onMounted(async () => {
   await authStore.initAuth()
   if (!authStore.isLoggedIn) {
     await navigateTo('/login')
+    return
   }
+  
+  // Load user quizzes
+  await loadUserQuizzes()
 })
 
 // Page meta
 definePageMeta({
   middleware: 'auth',
-})</script>
+})
+</script>

@@ -117,7 +117,7 @@ onUnmounted(() => {
 onMounted(async () => {
   await authStore.initAuth()
   if (authStore.isLoggedIn) {
-    await navigateTo('/home')
+    await navigateTo('/')
   }
 })
 

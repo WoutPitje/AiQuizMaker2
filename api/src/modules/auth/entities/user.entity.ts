@@ -8,6 +8,7 @@ import {
 } from 'typeorm';
 import { Exclude } from 'class-transformer';
 import { UserSession } from './user-session.entity';
+import { QuizEntity } from '../../quiz/entities/quiz.entity';
 
 @Entity('users')
 export class User {
@@ -44,6 +45,9 @@ export class User {
 
   @OneToMany(() => UserSession, (session) => session.user)
   sessions: UserSession[];
+
+  @OneToMany(() => QuizEntity, (quiz) => quiz.user)
+  quizzes: QuizEntity[];
 
   // Virtual properties
   get fullName(): string {

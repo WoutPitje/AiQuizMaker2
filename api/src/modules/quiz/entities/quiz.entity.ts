@@ -24,7 +24,7 @@ export class QuizEntity {
   description: string;
 
   @Column({ name: 'user_id', nullable: true })
-  userId?: string;
+  userId?: string | null;
 
   @Column({ name: 'source_filename', nullable: true })
   sourceFilename?: string;

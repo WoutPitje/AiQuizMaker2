@@ -44,9 +44,18 @@ export const useApi = () => {
     const formData = new FormData()
     formData.append('file', file)
     
+    // Get auth token if available
+    const authToken = import.meta.client ? localStorage.getItem('auth_token') : null
+    const headers: Record<string, string> = {}
+    
+    if (authToken) {
+      headers.Authorization = `Bearer ${authToken}`
+    }
+    
     try {
       const response = await fetch(`${baseURL}/upload`, {
         method: 'POST',
+        headers,
         body: formData,
       })
       

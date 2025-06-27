@@ -4,6 +4,8 @@ import {
   UploadedFile,
   UseInterceptors,
   BadRequestException,
+  UseGuards,
+  Request,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -16,6 +18,7 @@ import {
 import { extname } from 'path';
 import { StorageService } from '../storage/storage.service';
 import { Public } from '../auth/decorators/public.decorator';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('upload')
 @Controller('upload')
@@ -24,7 +27,7 @@ export class UploadController {
 
   @Public()
   @Post()
-  @ApiOperation({ summary: 'Upload PDF file for quiz generation' })
+  @ApiOperation({ summary: 'Upload PDF file for quiz generation (supports both authenticated and anonymous users)' })
   @ApiConsumes('multipart/form-data')
   @ApiResponse({
     status: 200,
@@ -68,7 +71,7 @@ export class UploadController {
       },
     }),
   )
-  async uploadFile(@UploadedFile() file: Express.Multer.File) {
+  async uploadFile(@UploadedFile() file: Express.Multer.File, @Request() req) {
     if (!file) {
       return {
         success: false,
@@ -87,10 +90,14 @@ export class UploadController {
     }
 
     try {
-      // Generate unique filename with timestamp
+      // Support both authenticated and anonymous users
+      const userId = req.user?.id || null;
+      
+      // Generate unique filename with timestamp and user context
       const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
       const ext = extname(file.originalname);
-      const filename = `${file.fieldname}-${uniqueSuffix}${ext}`;
+      const prefix = userId ? `user-${userId}` : 'anonymous';
+      const filename = `${prefix}-${file.fieldname}-${uniqueSuffix}${ext}`;
 
       // Upload to proper storage (GCS in production, local in development)
       await this.storageService.uploadFile(filename, file.buffer, 'uploads');
@@ -100,7 +107,8 @@ export class UploadController {
       const maxSizeMB = Math.round(maxSizeBytes / (1024 * 1024));
       const storageType = await this.getStorageInfo();
 
-      console.log(`📁 File uploaded: ${file.originalname} -> ${filename}`);
+      const userType = userId ? `user ${userId}` : 'anonymous user';
+      console.log(`📁 File uploaded by ${userType}: ${file.originalname} -> ${filename}`);
       console.log(
         `📊 File size: ${Math.round(file.size / (1024 * 1024))}MB / ${maxSizeMB}MB max`,
       );
