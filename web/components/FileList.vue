@@ -28,8 +28,8 @@
       </p>
     </div>
 
-    <!-- Quiz Limit Notice -->
-    <div v-if="quizLimitInfo" class="mb-6 p-4 rounded-md" :class="quizLimitInfo.allowed ? 'bg-blue-50 border border-blue-200' : 'bg-red-50 border border-red-200'">
+    <!-- Quiz Limit Notice - only show if authenticated or if anonymous with remaining quota -->
+    <div v-if="quizLimitInfo && (authStore.isLoggedIn || quizLimitInfo.allowed)" class="mb-6 p-4 rounded-md" :class="quizLimitInfo.allowed ? 'bg-blue-50 border border-blue-200' : 'bg-red-50 border border-red-200'">
       <div class="flex items-start">
         <div class="flex-shrink-0">
           <svg v-if="quizLimitInfo.allowed" class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
@@ -46,12 +46,12 @@
           <div class="mt-2 text-sm" :class="quizLimitInfo.allowed ? 'text-blue-700' : 'text-red-700'">
             <p v-if="quizLimitInfo.allowed">
               You can create {{ quizLimitInfo.limit - quizLimitInfo.current }} more quiz{{ quizLimitInfo.limit - quizLimitInfo.current === 1 ? '' : 's' }}.
-              {{ !authStore.isLoggedIn ? 'Anonymous users are limited to multiple-choice questions only.' : '' }}
+              {{ !authStore.isLoggedIn ? 'Anonymous users get 1 quiz per day with multiple-choice questions only.' : 'Authenticated users get 3 quizzes with all question types.' }}
             </p>
             <p v-else>
               {{ quizLimitInfo.message }}
             </p>
-            <p v-if="!authStore.isLoggedIn" class="mt-1">
+            <p v-if="!authStore.isLoggedIn && quizLimitInfo.allowed" class="mt-1">
               <NuxtLink to="/login" class="font-medium underline hover:text-blue-900">Sign in</NuxtLink> 
               or 
               <NuxtLink to="/register" class="font-medium underline hover:text-blue-900">create an account</NuxtLink> 
@@ -183,8 +183,8 @@
           <!-- Generate Live Quiz Button - only show if no quiz has been generated or if currently generating -->
           <button
             v-if="!hasGeneratedQuiz"
-            @click="generateQuizStream"
-            :disabled="isGeneratingQuiz || (quizLimitInfo && !quizLimitInfo.allowed)"
+            @click="handleGenerateQuiz"
+            :disabled="isGeneratingQuiz"
             class="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
            
@@ -255,6 +255,12 @@
 
     <!-- Streaming Quiz Display -->
     <StreamingQuizDisplay />
+
+    <!-- Quiz Limit Modal -->
+    <QuizLimitModal 
+      :show="showLimitModal" 
+      @close="showLimitModal = false" 
+    />
   </div>
 </template>
 
@@ -270,6 +276,7 @@ const { uploadedFile, hasUploadedFile, isGeneratingQuiz, supportedLanguages, sel
 
 // Quiz limit state
 const quizLimitInfo = ref<any>(null)
+const showLimitModal = ref(false)
 
 // Quiz generation options
 const questionsPerPage = ref<number>(2)
@@ -333,16 +340,29 @@ const handleRemoveFile = () => {
   fileUploadStore.removeFile()
 }
 
-// Streaming quiz generation
-const generateQuizStream = async () => {
+// Handle quiz generation button click
+const handleGenerateQuiz = async () => {
   if (!uploadedFile.value) return
   
   // Check quota before generation
   await fetchQuizLimit()
   if (quizLimitInfo.value && !quizLimitInfo.value.allowed) {
     console.warn('Quiz generation blocked: limit exceeded')
+    
+    // Show modal for anonymous users who hit the limit
+    if (!authStore.isLoggedIn) {
+      showLimitModal.value = true
+    }
     return
   }
+  
+  // If quota allows, proceed with generation
+  await generateQuizStream()
+}
+
+// Streaming quiz generation
+const generateQuizStream = async () => {
+  if (!uploadedFile.value) return
   
   const options = {
     questionsPerPage: questionsPerPage.value,

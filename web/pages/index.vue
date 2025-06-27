@@ -3,39 +3,49 @@
     <!-- Header -->
     <header class="bg-white border-b border-gray-200">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-        <div class="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0">
-          <div class="text-2xl font-bold text-gray-900 text-center sm:text-left">
+        <div class="flex justify-between items-center">
+          <div class="text-2xl font-bold text-gray-900">
             🧠 QuizAi
           </div>
-          <div class="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-3">
-            <!-- Auth buttons (only show if not authenticated) -->
-            <template v-if="!authStore.isLoggedIn">
-              <NuxtLink
-                to="/login"
-                class="inline-flex items-center justify-center px-3 py-2 border border-gray-300 text-gray-700 bg-white text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors duration-200 shadow-sm hover:shadow-md"
-              >
-                Sign In
-              </NuxtLink>
-              <NuxtLink
-                to="/register"
-                class="inline-flex items-center justify-center px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md"
-              >
-                Sign Up
-              </NuxtLink>
-            </template>
-            
-            <!-- User menu (only show if authenticated) -->
-            <template v-else>
-              <span class="text-sm text-gray-500 font-medium">
-                Logged in as {{ authStore.userName }}
-              </span>
-              <NuxtLink
-                to="/home"
-                class="inline-flex items-center justify-center px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md"
-              >
-                Dashboard
-              </NuxtLink>
-            </template>
+          <div class="flex items-center space-x-3">
+            <ClientOnly>
+              <!-- Auth buttons (only show if not authenticated) -->
+              <template v-if="!authStore.isLoggedIn">
+                <NuxtLink
+                  to="/login"
+                  class="inline-flex items-center justify-center px-3 py-2 border border-gray-300 text-gray-700 bg-white text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors duration-200 shadow-sm hover:shadow-md"
+                >
+                  Sign In
+                </NuxtLink>
+                <NuxtLink
+                  to="/register"
+                  class="inline-flex items-center justify-center px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md"
+                >
+                  Sign Up
+                </NuxtLink>
+              </template>
+              
+              <!-- User menu (only show if authenticated) -->
+              <template v-else>
+                <span class="text-sm text-gray-500 font-medium">
+                  Logged in as {{ authStore.userName }}
+                </span>
+                <NuxtLink
+                  to="/home"
+                  class="inline-flex items-center justify-center px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md"
+                >
+                  Dashboard
+                </NuxtLink>
+              </template>
+
+              <template #fallback>
+                <!-- Placeholder to maintain layout while loading -->
+                <div class="flex items-center space-x-3">
+                  <div class="w-16 h-8 bg-gray-200 rounded animate-pulse"></div>
+                  <div class="w-20 h-8 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+              </template>
+            </ClientOnly>
           </div>
         </div>
       </div>

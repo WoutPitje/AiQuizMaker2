@@ -273,8 +273,8 @@ export class QuizService {
    * Check if user has reached quiz generation limit
    */
   async checkQuizLimit(userId: string | null, clientIP?: string): Promise<{ allowed: boolean; current: number; limit: number; message?: string }> {
-    const AUTHENTICATED_LIMIT = 5;
-    const ANONYMOUS_LIMIT = 3;
+    const AUTHENTICATED_LIMIT = 3;
+    const ANONYMOUS_LIMIT = 1;
 
     try {
       if (userId) {
@@ -286,7 +286,7 @@ export class QuizService {
           allowed,
           current,
           limit: AUTHENTICATED_LIMIT,
-          message: allowed ? undefined : `You have reached the maximum limit of ${AUTHENTICATED_LIMIT} quizzes. Please sign in to create more or delete existing ones.`
+          message: allowed ? undefined : `You have reached the maximum limit of ${AUTHENTICATED_LIMIT} quizzes`
         };
       } else {
         // Anonymous user limit check (count recent anonymous quizzes)
@@ -305,7 +305,7 @@ export class QuizService {
           allowed,
           current: count,
           limit: ANONYMOUS_LIMIT,
-          message: allowed ? undefined : `Anonymous users are limited to ${ANONYMOUS_LIMIT} quizzes per day. Please sign in to create more quizzes.`
+          message: allowed ? undefined : `Anonymous users are limited to ${ANONYMOUS_LIMIT} quiz per day. Please sign in to create more quizzes.`
         };
       }
     } catch (error) {

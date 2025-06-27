@@ -1,41 +1,42 @@
 <template>
   <div class="min-h-screen bg-gray-50">
-    <!-- Header -->
-    <header class="bg-white border-b border-gray-200">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between h-16">
-          <div class="flex items-center">
-            <h1 class="text-xl font-semibold text-gray-900">
-              🧠 QuizAi Dashboard
-            </h1>
-          </div>
-          <div class="flex items-center space-x-4">
-            <span class="text-sm text-gray-500">
-              {{ authStore.userName }}
-            </span>
-            <button
-              @click="handleLogout"
-              class="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
-            >
-              Sign Out
-            </button>
+    <ClientOnly>
+      <!-- Header -->
+      <header class="bg-white border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="flex justify-between h-16">
+            <div class="flex items-center">
+              <h1 class="text-xl font-semibold text-gray-900">
+                🧠 QuizAi Dashboard
+              </h1>
+            </div>
+            <div class="flex items-center space-x-4">
+              <span class="text-sm text-gray-500">
+                {{ authStore.userName }}
+              </span>
+              <button
+                @click="handleLogout"
+                class="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+              >
+                Sign Out
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-    </header>
+      </header>
 
-    <!-- Main Content -->
-    <main class="max-w-4xl mx-auto py-12 sm:px-6 lg:px-8">
-      <div class="px-4 py-6 sm:px-0">
-        <!-- Welcome Section -->
-        <div class="text-center mb-12">
-          <h2 class="text-3xl font-bold text-gray-900 mb-4">
-            Welcome back, {{ authStore.userName }}!
-          </h2>
-          <p class="text-lg text-gray-600">
-            Ready to create your next interactive quiz?
-          </p>
-        </div>
+      <!-- Main Content -->
+      <main class="max-w-4xl mx-auto py-12 sm:px-6 lg:px-8">
+        <div class="px-4 py-6 sm:px-0">
+          <!-- Welcome Section -->
+          <div class="text-center mb-12">
+            <h2 class="text-3xl font-bold text-gray-900 mb-4">
+              Welcome back, {{ authStore.userName }}!
+            </h2>
+            <p class="text-lg text-gray-600">
+              Ready to create your next interactive quiz?
+            </p>
+          </div>
 
         <!-- Create New Quiz Button -->
         <div class="flex justify-center">
@@ -159,6 +160,13 @@
         </div>
       </div>
     </main>
+
+    <template #fallback>
+      <div class="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div class="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    </template>
+    </ClientOnly>
   </div>
 </template>
 
