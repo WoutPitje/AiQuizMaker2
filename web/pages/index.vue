@@ -8,22 +8,34 @@
             🧠 QuizAi
           </div>
           <div class="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-3">
-            <a
-              href="https://www.linkedin.com/in/wout-pittens-425b31200/"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="inline-flex items-center justify-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md"
-            >
-              💼 LinkedIn
-            </a>
-            <a
-              href="https://buymeacoffee.com/woutpittens"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="inline-flex items-center justify-center px-3 py-2 bg-yellow-400 hover:bg-yellow-500 text-gray-900 text-sm font-medium rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md"
-            >
-              ☕ Buy me a coffee
-            </a>
+            <!-- Auth buttons (only show if not authenticated) -->
+            <template v-if="!authStore.isLoggedIn">
+              <NuxtLink
+                to="/login"
+                class="inline-flex items-center justify-center px-3 py-2 border border-gray-300 text-gray-700 bg-white text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors duration-200 shadow-sm hover:shadow-md"
+              >
+                Sign In
+              </NuxtLink>
+              <NuxtLink
+                to="/register"
+                class="inline-flex items-center justify-center px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md"
+              >
+                Sign Up
+              </NuxtLink>
+            </template>
+            
+            <!-- User menu (only show if authenticated) -->
+            <template v-else>
+              <span class="text-sm text-gray-500 font-medium">
+                Logged in as {{ authStore.userName }}
+              </span>
+              <NuxtLink
+                to="/home"
+                class="inline-flex items-center justify-center px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md"
+              >
+                Dashboard
+              </NuxtLink>
+            </template>
           </div>
         </div>
       </div>
@@ -329,15 +341,18 @@ useHead({
   ]
 })
 
-// Initialize the store on page load
+// Initialize the stores on page load
 const fileUploadStore = useFileUploadStore()
+const authStore = useAuthStore()
 const { quizError, hasGeneratedQuiz, isGeneratingQuiz, hasUploadedFile } = storeToRefs(fileUploadStore)
 
 // Coffee popup reference
-const coffeePopupRef = ref(null)
+const coffeePopupRef = ref<any>(null)
 
-// Listen for coffee popup trigger event
-onMounted(() => {
+// Initialize auth and listen for coffee popup trigger event
+onMounted(async () => {
+  await authStore.initAuth()
+  
   window.addEventListener('show-coffee-popup', () => {
     if (coffeePopupRef.value) {
       coffeePopupRef.value.showPopup()

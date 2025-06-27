@@ -80,8 +80,8 @@ export default defineNuxtConfig({
   
   runtimeConfig: {
     public: {
-      apiUrl: process.env.NUXT_PUBLIC_API_URL || process.env.API_URL || 'https://your-api-domain.com',
-      apiBase: process.env.NUXT_PUBLIC_API_URL || process.env.API_URL || 'https://your-api-domain.com',
+      apiUrl: process.env.NUXT_PUBLIC_API_URL || process.env.API_URL || 'http://localhost:3001',
+      apiBase: process.env.NUXT_PUBLIC_API_URL || process.env.API_URL || 'http://localhost:3001',
       siteUrl: process.env.SITE_URL || 'https://quizai.nl',
       googleAnalyticsId: process.env.GOOGLE_ANALYTICS_ID || 'G-XXXXXXXXXX'
     }
