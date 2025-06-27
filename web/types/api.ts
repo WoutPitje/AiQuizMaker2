@@ -49,7 +49,71 @@ export interface UploadedFile {
   uploadedAt: Date
 }
 
-export interface QuizQuestion {
+// Base interface for all question types
+export interface BaseQuestion {
+  id: string
+  type: string
+  difficulty: 'easy' | 'medium' | 'hard'
+  explanation: string
+  pageNumber: number
+  language?: string
+}
+
+// Multiple choice question (original format)
+export interface MultipleChoiceQuestion extends BaseQuestion {
+  type: 'multiple-choice'
+  question: string
+  options: {
+    A: string
+    B: string
+    C: string
+    D: string
+  }
+  correctAnswer: 'A' | 'B' | 'C' | 'D'
+}
+
+// Flashcard question
+export interface FlashcardQuestion extends BaseQuestion {
+  type: 'flashcard'
+  front: string
+  back: string
+}
+
+// True/False question
+export interface TrueFalseQuestion extends BaseQuestion {
+  type: 'true-false'
+  statement: string
+  correctAnswer: boolean
+}
+
+// Fill-in-the-Blank question
+export interface FillInTheBlankQuestion extends BaseQuestion {
+  type: 'fill-in-blank'
+  text: string // Text with blanks marked as {{blank}}
+  blanks: string[] // Correct answers for each blank
+}
+
+// Short Answer question
+export interface ShortAnswerQuestion extends BaseQuestion {
+  type: 'short-answer'
+  question: string
+  expectedAnswer: string
+  keywords: string[] // Key terms that should be in the answer
+}
+
+// Matching question
+export interface MatchingQuestion extends BaseQuestion {
+  type: 'matching'
+  leftItems: { id: string; text: string }[]
+  rightItems: { id: string; text: string }[]
+  correctPairs: { leftId: string; rightId: string }[]
+}
+
+// Union type for all question types
+export type QuizQuestion = MultipleChoiceQuestion | FlashcardQuestion | TrueFalseQuestion | FillInTheBlankQuestion | ShortAnswerQuestion | MatchingQuestion
+
+// Legacy interface for backward compatibility
+export interface LegacyQuizQuestion {
   id: string
   question: string
   options: {
@@ -89,6 +153,8 @@ export interface QuizGenerationOptions {
   difficulty?: 'easy' | 'medium' | 'hard' | 'mixed'
   includeExplanations?: boolean
   language?: string
+  questionTypes?: string[]
+  quizType?: 'mixed' | 'multiple-choice' | 'flashcard' | 'true-false'
 }
 
 export interface QuizResponse {

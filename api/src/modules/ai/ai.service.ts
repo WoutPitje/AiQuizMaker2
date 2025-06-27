@@ -241,7 +241,6 @@ export class AiService {
           responseContent,
           pageNumber,
           options.language || 'en',
-          questionTypes,
         );
 
         if (questions.length > 0) {
@@ -478,7 +477,21 @@ ${instructions.explanations}
 - Make questions clear and unambiguous
 - Base questions directly on the provided content
 - Use the "type" field to specify the question type
-- Vary question types as requested`;
+- Vary question types as requested
+
+IMPORTANT RULES FOR FILL-IN-THE-BLANK QUESTIONS:
+- ALWAYS use {{blank}} markers in the "text" field where answers should go
+- The number of {{blank}} markers MUST match the number of items in the "blanks" array
+- Do NOT provide complete sentences as blanks - only the missing words/phrases
+- Example: "The capital of {{blank}} is {{blank}}" with blanks: ["France", "Paris"]
+- NEVER put explanatory text without {{blank}} markers in fill-in-blank questions
+
+IMPORTANT RULES FOR MATCHING QUESTIONS:
+- ALWAYS include the "type": "matching" field
+- Create meaningful pairs that test relationships/associations
+- Use unique IDs for each item (L1, L2... for left, R1, R2... for right)
+- Each leftItem must have exactly one corresponding rightItem
+- Example structure must be followed exactly as shown in the format`;
   }
 
   /**
@@ -490,7 +503,6 @@ ${instructions.explanations}
     questionTypes: string[],
   ): string {
     const language = options.language || 'en';
-    const langConfig = LANGUAGE_CONFIGS[language] || LANGUAGE_CONFIGS['en'];
 
     // If only multiple-choice, use original prompt for backward compatibility
     if (questionTypes.length === 1 && questionTypes[0] === 'multiple-choice') {
@@ -522,7 +534,6 @@ ${instructions.explanations}
     response: string,
     pageNumber: number,
     language: string = 'en',
-    questionTypes: string[] = ['multiple-choice'],
   ): QuizQuestion[] {
     try {
       this.logger.debug('Attempting to parse AI response as JSON...');
@@ -601,6 +612,15 @@ ${instructions.explanations}
               expectedAnswer: q.expectedAnswer,
               keywords: q.keywords || [],
             } as ShortAnswerQuestion;
+
+          case 'matching':
+            return {
+              ...baseQuestion,
+              type: 'matching' as const,
+              leftItems: q.leftItems || [],
+              rightItems: q.rightItems || [],
+              correctPairs: q.correctPairs || [],
+            } as MatchingQuestion;
 
           default:
             // Fallback to multiple-choice if unknown type
@@ -899,8 +919,8 @@ ${instructions.explanations}
     if (questionTypes.includes('fill-in-blank')) {
       formats.push(`  {
     "type": "fill-in-blank",
-    "text": "Text with {{blank}} to fill",
-    "blanks": ["correct answer"],
+    "text": "Text with {{blank}} to fill in. For multiple blanks use {{blank}} {{blank}}.",
+    "blanks": ["first correct answer", "second correct answer"],
     "difficulty": "easy|medium|hard",
     "explanation": "${includeExplanations ? 'Explanation of answer' : ''}"
   }`);
@@ -914,6 +934,26 @@ ${instructions.explanations}
     "keywords": ["key", "terms"],
     "difficulty": "easy|medium|hard",
     "explanation": "${includeExplanations ? 'Answer explanation' : ''}"
+  }`);
+    }
+
+    if (questionTypes.includes('matching')) {
+      formats.push(`  {
+    "type": "matching",
+    "leftItems": [
+      {"id": "L1", "text": "Item 1 to match"},
+      {"id": "L2", "text": "Item 2 to match"}
+    ],
+    "rightItems": [
+      {"id": "R1", "text": "Match for item 1"},
+      {"id": "R2", "text": "Match for item 2"}
+    ],
+    "correctPairs": [
+      {"leftId": "L1", "rightId": "R1"},
+      {"leftId": "L2", "rightId": "R2"}
+    ],
+    "difficulty": "easy|medium|hard",
+    "explanation": "${includeExplanations ? 'Explanation of matches' : ''}"
   }`);
     }
 

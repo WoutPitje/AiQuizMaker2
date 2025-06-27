@@ -1,81 +1,114 @@
 <template>
-  <div 
-    :class="containerClass"
-    class="border border-gray-200 rounded-lg p-4"
-  >
-    <!-- Question Header -->
-    <div class="flex items-center justify-between mb-3">
-      <span class="text-sm font-medium text-blue-600">Question {{ index + 1 }}</span>
-      <div class="flex items-center space-x-2">
-        <span v-if="question.pageNumber" class="text-xs text-gray-500">Page {{ question.pageNumber }}</span>
-        <span 
-          class="text-xs px-2 py-1 rounded-full"
-          :class="getDifficultyClass(question.difficulty)"
-        >
-          {{ question.difficulty }}
-        </span>
-      </div>
-    </div>
+  <div>
+    <!-- Multiple Choice Question -->
+    <MultipleChoiceQuestion
+      v-if="isMultipleChoice(typedQuestion)"
+      :question="typedQuestion"
+      :index="index"
+      :container-class="containerClass"
+      :show-answers="showAnswers"
+      :selected-answers="selectedAnswers"
+      :select-answer="selectAnswer"
+      :toggle-answer="toggleAnswer"
+      :get-option-class="getOptionClass"
+      :get-difficulty-class="getDifficultyClass"
+    />
 
-    <!-- Question Text -->
-    <h3 class="text-lg font-medium text-gray-900 mb-4">{{ question.question }}</h3>
+    <!-- Flashcard Question -->
+    <FlashcardQuestion
+      v-else-if="isFlashcard(typedQuestion)"
+      :question="typedQuestion"
+      :index="index"
+      :container-class="containerClass"
+      :show-answers="showAnswers"
+      :selected-answers="selectedAnswers"
+      :select-answer="selectAnswer"
+      :toggle-answer="toggleAnswer"
+      :get-option-class="getOptionClass"
+      :get-difficulty-class="getDifficultyClass"
+      :show-self-assessment="true"
+      :show-explanation="true"
+      @self-assessment="handleSelfAssessment"
+    />
 
-    <!-- Options -->
-    <div class="space-y-2 mb-4">
-      <div
-        v-for="(option, optionKey) in question.options"
-        :key="optionKey"
-        :class="getOptionClass(question, optionKey.toString())"
-        class="p-3 rounded cursor-pointer transition-colors border"
-        @click="selectAnswer(question.id, optionKey.toString(), question)"
-      >
-        <div class="flex items-center justify-between">
-          <div>
-            <span class="font-medium">{{ optionKey }}.</span> {{ option }}
-          </div>
-          <div v-if="showAnswers[question.id] && optionKey === question.correctAnswer" class="text-green-600">
-            <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-              <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-            </svg>
-          </div>
-        </div>
-      </div>
-    </div>
+    <!-- True/False Question -->
+    <TrueFalseQuestion
+      v-else-if="isTrueFalse(typedQuestion)"
+      :question="typedQuestion"
+      :index="index"
+      :container-class="containerClass"
+      :show-answers="showAnswers"
+      :selected-answers="selectedAnswers"
+      :select-answer="selectAnswer"
+      :toggle-answer="toggleAnswer"
+      :get-option-class="getOptionClass"
+      :get-difficulty-class="getDifficultyClass"
+    />
 
-    <!-- Show/Hide Answer Button -->
-    <div class="flex items-center justify-between">
-      <button
-        @click="toggleAnswer(question.id)"
-        class="text-blue-600 hover:text-blue-800 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 rounded px-2 py-1"
-      >
-        {{ showAnswers[question.id] ? 'Hide Answer' : 'Show Answer' }}
-      </button>
-      
-      <!-- Selected Answer Display -->
-      <div v-if="selectedAnswers[question.id]" class="text-sm text-gray-600">
-        Your answer: <span class="font-medium">{{ selectedAnswers[question.id] }}</span>
-      </div>
-    </div>
+    <!-- Fill-in-the-Blank Question -->
+    <FillInTheBlankQuestion
+      v-else-if="isFillInTheBlank(typedQuestion)"
+      :question="typedQuestion"
+      :index="index"
+      :container-class="containerClass"
+      :show-answers="showAnswers"
+      :selected-answers="selectedAnswers"
+      :select-answer="selectAnswer"
+      :toggle-answer="toggleAnswer"
+      :get-option-class="getOptionClass"
+      :get-difficulty-class="getDifficultyClass"
+    />
 
-    <!-- Answer Explanation -->
-    <div v-if="showAnswers[question.id]" class="mt-3 p-3 bg-green-50 rounded border border-green-200">
-      <div class="flex items-center mb-2">
-        <svg class="w-5 h-5 text-green-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
-          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-        </svg>
-        <span class="font-medium text-green-800">
-          Correct Answer: {{ question.correctAnswer }}
-        </span>
+    <!-- Short Answer Question -->
+    <ShortAnswerQuestion
+      v-else-if="isShortAnswer(typedQuestion)"
+      :question="typedQuestion"
+      :index="index"
+      :container-class="containerClass"
+      :show-answers="showAnswers"
+      :selected-answers="selectedAnswers"
+      :select-answer="selectAnswer"
+      :toggle-answer="toggleAnswer"
+      :get-option-class="getOptionClass"
+      :get-difficulty-class="getDifficultyClass"
+    />
+
+    <!-- Matching Question -->
+    <MatchingQuestion
+      v-else-if="isMatching(typedQuestion)"
+      :question="typedQuestion"
+      :index="index"
+      :container-class="containerClass"
+      :show-answers="showAnswers"
+      :selected-answers="selectedAnswers"
+      :select-answer="selectAnswer"
+      :toggle-answer="toggleAnswer"
+      :get-option-class="getOptionClass"
+      :get-difficulty-class="getDifficultyClass"
+    />
+
+    <!-- Fallback for unknown question types -->
+    <div v-else class="border border-red-200 rounded-lg p-4 bg-red-50">
+      <div class="flex items-center gap-2 text-red-600 mb-2">
+        <span>⚠️</span>
+        <span class="font-medium">Unknown Question Type</span>
       </div>
-      <p v-if="question.explanation" class="text-green-700 text-sm">
-        {{ question.explanation }}
+      <p class="text-sm text-red-700">
+        Question type "{{ typedQuestion.type }}" is not supported yet.
       </p>
+      <details class="mt-2">
+        <summary class="text-xs text-red-600 cursor-pointer">Debug Info</summary>
+        <pre class="text-xs text-red-600 mt-1 overflow-auto">{{ JSON.stringify(typedQuestion, null, 2) }}</pre>
+      </details>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-interface QuizQuestionProps {
+import type { QuizQuestion } from '~/types/api'
+import { isMultipleChoice, isFlashcard, isTrueFalse, isFillInTheBlank, isShortAnswer, isMatching, ensureQuestionType } from '~/utils/questionTypes'
+
+interface Props {
   question: any
   index: number
   containerClass?: string
@@ -87,5 +120,13 @@ interface QuizQuestionProps {
   getDifficultyClass: (difficulty: string) => string
 }
 
-defineProps<QuizQuestionProps>()
-</script> 
+const props = defineProps<Props>()
+
+// Ensure the question has a proper type
+const typedQuestion = computed(() => ensureQuestionType(props.question))
+
+// Handle flashcard self-assessment
+const handleSelfAssessment = (questionId: string, rating: number) => {
+  // The FlashcardQuestion component now handles integration with selectAnswer internally
+  console.log('Flashcard self-assessment:', questionId, rating)
+}</script> 

@@ -34,14 +34,60 @@ export const useQuizInteractions = () => {
     
     // Track if this question has been answered and if it's correct
     answeredQuestions.value[questionId] = true
-    correctAnswers.value[questionId] = optionKey === question.correctAnswer
+    
+    // Handle different question types and correctAnswer formats
+    let isCorrect = false
+    if (question.type === 'true-false') {
+      // For true/false, convert string to boolean for comparison
+      const selectedBool = optionKey === 'true'
+      isCorrect = selectedBool === question.correctAnswer
+    } else if (question.type === 'flashcard') {
+      // For flashcards, ratings 3-4 are considered correct
+      const rating = parseInt(optionKey)
+      isCorrect = rating >= 3
+    } else if (question.type === 'matching') {
+      // For matching, parse the JSON pairs and compare
+      try {
+        const userPairs = JSON.parse(optionKey)
+        const correctPairs = JSON.parse(question.correctAnswer)
+        let correctMatches = 0
+        for (const correctPair of correctPairs) {
+          if (userPairs[correctPair.leftId] === correctPair.rightId) {
+            correctMatches++
+          }
+        }
+        // Consider it correct if at least 60% of matches are right
+        isCorrect = correctMatches >= Math.ceil(correctPairs.length * 0.6)
+      } catch (e) {
+        isCorrect = false
+      }
+    } else {
+      // For multiple choice and other types, use string comparison
+      isCorrect = optionKey === question.correctAnswer
+    }
+    
+    correctAnswers.value[questionId] = isCorrect
   }
 
   // Get CSS classes for option styling based on state
   const getOptionClass = (question: any, optionKey: string) => {
     const isSelected = selectedAnswers.value[question.id] === optionKey
-    const isCorrect = optionKey === question.correctAnswer
     const showingAnswers = showAnswers.value[question.id]
+    
+    // Handle different question types for correctAnswer comparison
+    let isCorrect = false
+    if (question.type === 'true-false') {
+      // For true/false, convert string to boolean for comparison
+      const selectedBool = optionKey === 'true'
+      isCorrect = selectedBool === question.correctAnswer
+    } else if (question.type === 'flashcard') {
+      // For flashcards, ratings 3-4 are considered correct
+      const rating = parseInt(optionKey)
+      isCorrect = rating >= 3
+    } else {
+      // For multiple choice and other types, use string comparison
+      isCorrect = optionKey === question.correctAnswer
+    }
     
     if (showingAnswers && isCorrect) {
       return 'bg-green-100 border-green-300 border-2'

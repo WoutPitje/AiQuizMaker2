@@ -32,7 +32,7 @@
     <div class="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-md">
       <h4 class="text-sm font-medium text-gray-900 mb-3">📋 Quiz Options</h4>
       
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <!-- Questions per page -->
         <div>
           <label class="block text-xs font-medium text-gray-700 mb-1">
@@ -48,6 +48,26 @@
             <option value="3">3 questions</option>
             <option value="4">4 questions</option>
             <option value="5">5 questions</option>
+          </select>
+        </div>
+
+        <!-- Question Type -->
+        <div>
+          <label class="block text-xs font-medium text-gray-700 mb-1">
+            Question Type
+          </label>
+          <select 
+            v-model="questionType" 
+            :disabled="isGeneratingQuiz"
+            class="w-full px-2 py-1 text-sm border border-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <option value="multiple-choice">🔘 Multiple Choice</option>
+            <option value="flashcard">🃏 Flashcards</option>
+            <option value="true-false">✅ True/False</option>
+            <option value="fill-in-blank">📝 Fill in the Blank</option>
+            <option value="short-answer">💭 Short Answer</option>
+            <option value="matching">🔗 Matching</option>
+            <option value="mixed">🎯 Mixed Types</option>
           </select>
         </div>
 
@@ -69,17 +89,19 @@
         </div>
 
         <!-- Explanations -->
-        <div class="flex items-center mt-4">
-          <input 
-            id="includeExplanations" 
-            type="checkbox" 
-            v-model="includeExplanations"
-            :disabled="isGeneratingQuiz"
-            class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-          <label for="includeExplanations" class="ml-2 text-xs font-medium text-gray-700">
-            Include explanations
-          </label>
+        <div class="md:col-span-2 flex items-center justify-center mt-2">
+          <div class="flex items-center">
+            <input 
+              id="includeExplanations" 
+              type="checkbox" 
+              v-model="includeExplanations"
+              :disabled="isGeneratingQuiz"
+              class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+            <label for="includeExplanations" class="ml-2 text-xs font-medium text-gray-700">
+              Include explanations
+            </label>
+          </div>
         </div>
       </div>
     </div>
@@ -205,6 +227,7 @@ const { uploadedFile, hasUploadedFile, isGeneratingQuiz, supportedLanguages, sel
 
 // Quiz generation options
 const questionsPerPage = ref<number>(2)
+const questionType = ref<string>('multiple-choice')
 const difficulty = ref<string>('mixed')
 const includeExplanations = ref<boolean>(true)
 
@@ -246,7 +269,9 @@ const generateQuizStream = async () => {
   const options = {
     questionsPerPage: questionsPerPage.value,
     difficulty: difficulty.value as 'easy' | 'medium' | 'hard' | 'mixed',
-    includeExplanations: includeExplanations.value
+    includeExplanations: includeExplanations.value,
+    quizType: questionType.value as 'multiple-choice' | 'flashcard' | 'true-false' | 'fill-in-blank' | 'short-answer' | 'matching' | 'mixed',
+    questionTypes: questionType.value === 'mixed' ? ['multiple-choice', 'flashcard', 'true-false', 'fill-in-blank', 'short-answer', 'matching'] : [questionType.value]
   }
   
   console.log('🎯 Starting streaming quiz generation with options:', options)
