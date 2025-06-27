@@ -37,7 +37,8 @@ export class GcsService {
       throw new Error('GCS not configured');
     }
 
-    const bucketName = bucketType === 'uploads' ? this.uploadsBucket : this.quizStorageBucket;
+    const bucketName =
+      bucketType === 'uploads' ? this.uploadsBucket : this.quizStorageBucket;
     const bucket = this.storage.bucket(bucketName);
     const file = bucket.file(filename);
 
@@ -70,7 +71,8 @@ export class GcsService {
       throw new Error('GCS not configured');
     }
 
-    const bucketName = bucketType === 'uploads' ? this.uploadsBucket : this.quizStorageBucket;
+    const bucketName =
+      bucketType === 'uploads' ? this.uploadsBucket : this.quizStorageBucket;
     const bucket = this.storage.bucket(bucketName);
     const file = bucket.file(filename);
 
@@ -91,7 +93,8 @@ export class GcsService {
       throw new Error('GCS not configured');
     }
 
-    const bucketName = bucketType === 'uploads' ? this.uploadsBucket : this.quizStorageBucket;
+    const bucketName =
+      bucketType === 'uploads' ? this.uploadsBucket : this.quizStorageBucket;
     const bucket = this.storage.bucket(bucketName);
     const file = bucket.file(filename);
 
@@ -109,12 +112,13 @@ export class GcsService {
       throw new Error('GCS not configured');
     }
 
-    const bucketName = bucketType === 'uploads' ? this.uploadsBucket : this.quizStorageBucket;
+    const bucketName =
+      bucketType === 'uploads' ? this.uploadsBucket : this.quizStorageBucket;
     const bucket = this.storage.bucket(bucketName);
 
     try {
       const [files] = await bucket.getFiles();
-      return files.map(file => file.name);
+      return files.map((file) => file.name);
     } catch (error) {
       this.logger.error(`Failed to list files in ${bucketName}:`, error);
       throw error;
@@ -129,7 +133,8 @@ export class GcsService {
       throw new Error('GCS not configured');
     }
 
-    const bucketName = bucketType === 'uploads' ? this.uploadsBucket : this.quizStorageBucket;
+    const bucketName =
+      bucketType === 'uploads' ? this.uploadsBucket : this.quizStorageBucket;
     const bucket = this.storage.bucket(bucketName);
     const file = bucket.file(filename);
 
@@ -150,7 +155,8 @@ export class GcsService {
       throw new Error('GCS not configured');
     }
 
-    const bucketName = bucketType === 'uploads' ? this.uploadsBucket : this.quizStorageBucket;
+    const bucketName =
+      bucketType === 'uploads' ? this.uploadsBucket : this.quizStorageBucket;
     const bucket = this.storage.bucket(bucketName);
     const file = bucket.file(filename);
 
@@ -180,4 +186,4 @@ export class GcsService {
   isEnabled(): boolean {
     return this.isGcsEnabled();
   }
-} 
+}

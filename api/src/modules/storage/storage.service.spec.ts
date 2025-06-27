@@ -45,9 +45,17 @@ describe('StorageService', () => {
       mockGcsService.isEnabled.mockReturnValue(true);
       mockGcsService.uploadFile.mockResolvedValue('test.pdf');
 
-      const result = await service.uploadFile('test.pdf', Buffer.from('data'), 'uploads');
+      const result = await service.uploadFile(
+        'test.pdf',
+        Buffer.from('data'),
+        'uploads',
+      );
 
-      expect(mockGcsService.uploadFile).toHaveBeenCalledWith('test.pdf', Buffer.from('data'), 'uploads');
+      expect(mockGcsService.uploadFile).toHaveBeenCalledWith(
+        'test.pdf',
+        Buffer.from('data'),
+        'uploads',
+      );
       expect(result).toBe('test.pdf');
     });
 
@@ -55,9 +63,16 @@ describe('StorageService', () => {
       mockGcsService.isEnabled.mockReturnValue(false);
       (fsPromises.writeFile as jest.Mock).mockResolvedValue(undefined);
 
-      const result = await service.uploadFile('test.pdf', Buffer.from('data'), 'uploads');
+      const result = await service.uploadFile(
+        'test.pdf',
+        Buffer.from('data'),
+        'uploads',
+      );
 
-      expect(fsPromises.writeFile).toHaveBeenCalledWith('./uploads/test.pdf', Buffer.from('data'));
+      expect(fsPromises.writeFile).toHaveBeenCalledWith(
+        './uploads/test.pdf',
+        Buffer.from('data'),
+      );
       expect(result).toBe('test.pdf');
     });
   });
@@ -69,7 +84,10 @@ describe('StorageService', () => {
 
       const result = await service.downloadFile('test.pdf', 'uploads');
 
-      expect(mockGcsService.downloadFile).toHaveBeenCalledWith('test.pdf', 'uploads');
+      expect(mockGcsService.downloadFile).toHaveBeenCalledWith(
+        'test.pdf',
+        'uploads',
+      );
       expect(result).toEqual(Buffer.from('data'));
     });
 
@@ -95,7 +113,7 @@ describe('StorageService', () => {
       expect(mockGcsService.uploadFile).toHaveBeenCalledWith(
         'quiz123.json',
         Buffer.from(JSON.stringify(quizData, null, 2)),
-        'quiz-storage'
+        'quiz-storage',
       );
     });
   });
@@ -105,13 +123,16 @@ describe('StorageService', () => {
       const quizData = { id: 'quiz123', questions: [] };
       mockGcsService.isEnabled.mockReturnValue(true);
       mockGcsService.downloadFile.mockResolvedValue(
-        Buffer.from(JSON.stringify(quizData))
+        Buffer.from(JSON.stringify(quizData)),
       );
 
       const result = await service.loadQuizData('quiz123');
 
-      expect(mockGcsService.downloadFile).toHaveBeenCalledWith('quiz123.json', 'quiz-storage');
+      expect(mockGcsService.downloadFile).toHaveBeenCalledWith(
+        'quiz123.json',
+        'quiz-storage',
+      );
       expect(result).toEqual(quizData);
     });
   });
-}); 
+});

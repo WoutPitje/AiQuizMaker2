@@ -15,7 +15,7 @@ export class StorageService {
 
   private ensureLocalDirectories() {
     const dirs = ['./uploads', './quiz-storage'];
-    dirs.forEach(dir => {
+    dirs.forEach((dir) => {
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
         this.logger.log(`Created local directory: ${dir}`);
@@ -141,4 +141,4 @@ export class StorageService {
     const buffer = await this.downloadFile(filename, 'quiz-storage');
     return JSON.parse(buffer.toString());
   }
-} 
+}

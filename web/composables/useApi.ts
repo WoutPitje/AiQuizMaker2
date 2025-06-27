@@ -73,7 +73,7 @@ export const useApi = () => {
 
   const getQuizByMagicLink = async (magicLink: string): Promise<QuizResponse> => {
     try {
-      const response = await fetch(`${baseURL}/quiz/magic/${magicLink}`)
+      const response = await fetch(`${baseURL}/quizzes/${magicLink}`)
       
       if (!response.ok) {
         if (response.status === 404) {

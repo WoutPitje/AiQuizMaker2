@@ -16,4 +16,4 @@ export interface PdfProcessingResult {
     creationDate?: Date;
     modificationDate?: Date;
   };
-} 
+}

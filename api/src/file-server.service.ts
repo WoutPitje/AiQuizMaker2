@@ -14,7 +14,10 @@ export class FileServerService {
   /**
    * Split a PDF file into individual pages and extract text content
    */
-  async splitPdfToPages(filePath: string, generateImages: boolean = false): Promise<PdfProcessingResult> {
+  async splitPdfToPages(
+    filePath: string,
+    generateImages: boolean = false,
+  ): Promise<PdfProcessingResult> {
     try {
       this.logger.log(`Starting PDF processing for: ${filePath}`);
 
@@ -27,10 +30,12 @@ export class FileServerService {
       // Extract text content and metadata from PDF
       const pdfBuffer = fs.readFileSync(filePath);
       this.logger.log(`PDF buffer size: ${pdfBuffer.length} bytes`);
-      
+
       this.logger.log('Parsing PDF content...');
       const pdfData = await pdfParse(pdfBuffer);
-      this.logger.log(`PDF parsed successfully. Pages: ${pdfData.numpages}, Text length: ${pdfData.text.length}`);
+      this.logger.log(
+        `PDF parsed successfully. Pages: ${pdfData.numpages}, Text length: ${pdfData.text.length}`,
+      );
 
       // Process each page
       const pages: PdfPage[] = [];
@@ -39,7 +44,7 @@ export class FileServerService {
 
       if (generateImages) {
         this.logger.log('Generating page images (this may take a while)...');
-        
+
         // Create output directory for page images
         const outputDir = path.join(path.dirname(filePath), 'pages');
         if (!fs.existsSync(outputDir)) {
@@ -62,7 +67,11 @@ export class FileServerService {
           };
 
           // Convert to images
-          await poppler.pdfToCairo(filePath, outputDir + '/' + outputPrefix, pdfToCairoOptions);
+          await poppler.pdfToCairo(
+            filePath,
+            outputDir + '/' + outputPrefix,
+            pdfToCairoOptions,
+          );
           this.logger.log(`Image conversion completed`);
 
           for (let i = 1; i <= pdfData.numpages; i++) {
@@ -76,8 +85,10 @@ export class FileServerService {
             });
           }
         } catch (error) {
-          this.logger.warn(`Image generation failed: ${error.message}, proceeding without images`);
-          
+          this.logger.warn(
+            `Image generation failed: ${error.message}, proceeding without images`,
+          );
+
           // Fallback to text-only pages if image generation fails
           for (let i = 1; i <= pdfData.numpages; i++) {
             pages.push({
@@ -88,8 +99,10 @@ export class FileServerService {
           }
         }
       } else {
-        this.logger.log('Skipping image generation, creating text-only pages...');
-        
+        this.logger.log(
+          'Skipping image generation, creating text-only pages...',
+        );
+
         for (let i = 1; i <= pdfData.numpages; i++) {
           pages.push({
             pageNumber: i,
@@ -113,9 +126,10 @@ export class FileServerService {
         },
       };
 
-      this.logger.log(`PDF processing completed successfully. Total pages: ${result.totalPages}`);
+      this.logger.log(
+        `PDF processing completed successfully. Total pages: ${result.totalPages}`,
+      );
       return result;
-
     } catch (error) {
       this.logger.error(`Error processing PDF: ${error.message}`, error.stack);
       throw new Error(`Failed to process PDF: ${error.message}`);
@@ -163,7 +177,9 @@ export class FileServerService {
         this.logger.log(`Cleaned up temporary directory: ${directory}`);
       }
     } catch (error) {
-      this.logger.warn(`Failed to cleanup directory ${directory}: ${error.message}`);
+      this.logger.warn(
+        `Failed to cleanup directory ${directory}: ${error.message}`,
+      );
     }
   }
 
@@ -172,23 +188,25 @@ export class FileServerService {
    */
   private extractPageTexts(fullText: string, pageCount: number): string[] {
     this.logger.log(`Splitting text into ${pageCount} pages...`);
-    
+
     // This is a simplified approach - in reality, PDF text extraction per page is complex
     // For now, we'll split the text roughly by page count
     const words = fullText.split(/\s+/);
     const wordsPerPage = Math.ceil(words.length / pageCount);
-    
+
     const pageTexts: string[] = [];
     for (let i = 0; i < pageCount; i++) {
       const startIndex = i * wordsPerPage;
       const endIndex = Math.min((i + 1) * wordsPerPage, words.length);
       const pageText = words.slice(startIndex, endIndex).join(' ');
       pageTexts.push(pageText);
-      
+
       this.logger.debug(`Page ${i + 1}: ${pageText.length} characters`);
     }
-    
-    this.logger.log(`Text splitting completed. Average words per page: ${wordsPerPage}`);
+
+    this.logger.log(
+      `Text splitting completed. Average words per page: ${wordsPerPage}`,
+    );
     return pageTexts;
   }
-} 
+}

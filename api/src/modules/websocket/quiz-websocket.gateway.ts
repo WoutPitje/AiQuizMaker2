@@ -4,15 +4,23 @@ import {
   SubscribeMessage,
   OnGatewayConnection,
   OnGatewayDisconnect,
+  OnGatewayInit,
   ConnectedSocket,
   MessageBody,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
-import { QuizmakerService } from './quizmaker.service';
-import { StorageService } from './storage.service';
-import { PdfToQuizOptions } from './models/quiz.model';
+import { JwtService } from '@nestjs/jwt';
+import { QuizService } from '../quiz/quiz.service';
+import { StorageService } from '../storage/storage.service';
+import { PdfToQuizOptions } from '../../models/quiz.model';
+import { User } from '../auth/entities/user.entity';
+import { JwtStrategy } from '../auth/strategies/jwt.strategy';
+import { AuthWsMiddleware } from './middleware/auth-ws.middleware';
+import { WsCurrentUser } from './decorators/ws-current-user.decorator';
+import { Public } from '../auth/decorators/public.decorator';
 
+@Public()
 @WebSocketGateway({
   cors: {
     origin: [
@@ -27,26 +35,44 @@ import { PdfToQuizOptions } from './models/quiz.model';
   },
   namespace: '/quiz',
 })
-export class QuizWebSocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class QuizWebsocketGateway
+  implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit
+{
   @WebSocketServer()
   server: Server;
 
-  private readonly logger = new Logger(QuizWebSocketGateway.name);
-  private activeConnections = new Map<string, { socket: Socket; quizId?: string }>();
+  private readonly logger = new Logger(QuizWebsocketGateway.name);
+  private activeConnections = new Map<
+    string,
+    { socket: Socket; quizId?: string; user?: User | null }
+  >();
 
   constructor(
-    private readonly quizmakerService: QuizmakerService,
+    private readonly quizService: QuizService,
     private readonly storageService: StorageService,
+    private readonly jwtService: JwtService,
+    private readonly jwtStrategy: JwtStrategy,
   ) {}
 
+  afterInit(server: Server) {
+    server.use(AuthWsMiddleware(this.jwtService, this.jwtStrategy));
+  }
+
   handleConnection(client: Socket) {
-    this.logger.log(`Client connected: ${client.id}`);
-    this.activeConnections.set(client.id, { socket: client });
-    
-    // Send connection confirmation
+    const user = client.data?.user;
+    this.logger.log(
+      `Client connected: ${client.id}, User: ${user?.id || 'anonymous'}`,
+    );
+    this.activeConnections.set(client.id, {
+      socket: client,
+      user: user,
+    });
+
     client.emit('connection', {
       type: 'connection',
       message: 'WebSocket connected successfully',
+      authenticated: !!user,
+      user: user ? { id: user.id, email: user.email } : null,
       timestamp: new Date().toISOString(),
     });
   }
@@ -60,14 +86,32 @@ export class QuizWebSocketGateway implements OnGatewayConnection, OnGatewayDisco
   async handleGenerateQuiz(
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { filename: string; options?: PdfToQuizOptions },
+    @WsCurrentUser() user: User | null,
   ) {
     const { filename, options = {} } = data;
-    
+
     try {
-      this.logger.log(`Starting quiz generation for client ${client.id}, file: ${filename}`);
-      
+      this.logger.log(
+        `Starting quiz generation for client ${client.id}, user: ${user?.id || 'anonymous'}, file: ${filename}`,
+      );
+      this.logger.log(`Quiz options:`, {
+        ...options,
+        questionTypes: options.questionTypes || ['multiple-choice'],
+        quizType: options.quizType || 'multiple-choice',
+        userId: user?.id,
+      });
+
+      // Add user ID to options for quiz association
+      const quizOptions = {
+        ...options,
+        userId: user?.id,
+      };
+
       // Check if file exists
-      const fileExists = await this.storageService.fileExists(filename, 'uploads');
+      const fileExists = await this.storageService.fileExists(
+        filename,
+        'uploads',
+      );
       if (!fileExists) {
         client.emit('quiz-error', {
           type: 'error',
@@ -84,7 +128,10 @@ export class QuizWebSocketGateway implements OnGatewayConnection, OnGatewayDisco
       }
 
       // Start quiz generation stream
-      const quizStream = this.quizmakerService.pdfToQuizStream(filename, options);
+      const quizStream = this.quizService.pdfToQuizStream(
+        filename,
+        quizOptions,
+      );
 
       quizStream.subscribe({
         next: (eventData) => {
@@ -92,7 +139,10 @@ export class QuizWebSocketGateway implements OnGatewayConnection, OnGatewayDisco
           client.emit('quiz-event', eventData);
         },
         error: (error) => {
-          this.logger.error(`Quiz generation error for client ${client.id}:`, error);
+          this.logger.error(
+            `Quiz generation error for client ${client.id}:`,
+            error,
+          );
           client.emit('quiz-error', {
             type: 'error',
             message: 'Quiz generation failed',
@@ -107,9 +157,11 @@ export class QuizWebSocketGateway implements OnGatewayConnection, OnGatewayDisco
           });
         },
       });
-
     } catch (error) {
-      this.logger.error(`Failed to start quiz generation for client ${client.id}:`, error);
+      this.logger.error(
+        `Failed to start quiz generation for client ${client.id}:`,
+        error,
+      );
       client.emit('quiz-error', {
         type: 'error',
         message: 'Failed to start quiz generation',
@@ -148,4 +200,4 @@ export class QuizWebSocketGateway implements OnGatewayConnection, OnGatewayDisco
       ).length,
     };
   }
-} 
+}

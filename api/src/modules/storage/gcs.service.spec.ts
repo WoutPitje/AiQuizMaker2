@@ -30,7 +30,9 @@ describe('GcsService', () => {
       bucket: jest.fn().mockReturnValue(mockBucket),
     } as any;
 
-    (Storage as jest.MockedClass<typeof Storage>).mockImplementation(() => mockStorage);
+    (Storage as jest.MockedClass<typeof Storage>).mockImplementation(
+      () => mockStorage,
+    );
 
     // Set environment variables
     process.env.UPLOADS_BUCKET = 'test-uploads-bucket';
@@ -76,7 +78,11 @@ describe('GcsService', () => {
       };
       mockFile.createWriteStream.mockReturnValue(mockStream);
 
-      const result = await service.uploadFile('test.pdf', Buffer.from('data'), 'uploads');
+      const result = await service.uploadFile(
+        'test.pdf',
+        Buffer.from('data'),
+        'uploads',
+      );
 
       expect(mockStorage.bucket).toHaveBeenCalledWith('test-uploads-bucket');
       expect(mockBucket.file).toHaveBeenCalledWith('test.pdf');
@@ -93,7 +99,11 @@ describe('GcsService', () => {
       const serviceWithoutBuckets = new GcsService();
 
       await expect(
-        serviceWithoutBuckets.uploadFile('test.pdf', Buffer.from('data'), 'uploads')
+        serviceWithoutBuckets.uploadFile(
+          'test.pdf',
+          Buffer.from('data'),
+          'uploads',
+        ),
       ).rejects.toThrow('GCS not configured');
     });
   });
@@ -132,10 +142,7 @@ describe('GcsService', () => {
 
   describe('listFiles', () => {
     it('should list files in bucket', async () => {
-      const mockFiles = [
-        { name: 'file1.pdf' },
-        { name: 'file2.pdf' },
-      ];
+      const mockFiles = [{ name: 'file1.pdf' }, { name: 'file2.pdf' }];
       mockBucket.getFiles.mockResolvedValue([mockFiles]);
 
       const result = await service.listFiles('uploads');
@@ -144,4 +151,4 @@ describe('GcsService', () => {
       expect(result).toEqual(['file1.pdf', 'file2.pdf']);
     });
   });
-}); 
+});
